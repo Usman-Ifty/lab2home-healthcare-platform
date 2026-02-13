@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <g transform="translate(100, 100)" opacity="0.4">
+    <path fill="#9ca3af" d="M100 75 L125 40 L200 40 L225 75 L260 75 C271.046 75 280 83.954 280 95 L280 225 C280 236.046 271.046 245 260 245 L40 245 C28.954 245 20 236.046 20 225 L20 95 C20 83.954 28.954 75 40 75 L100 75 Z M150 160 C150 126.863 123.137 100 90 100 C56.863 100 30 126.863 30 160 C30 193.137 56.863 220 90 220 C123.137 220 150 193.137 150 160 Z"/>
+    <circle cx="150" cy="160" r="50" stroke="#9ca3af" stroke-width="15" fill="none"/>
+    <circle cx="150" cy="160" r="20" fill="#9ca3af"/>
+  </g>
+  <text x="50%" y="320" font-family="sans-serif" font-size="24" fill="#9ca3af" text-anchor="middle">No Image Available</text>
+</svg>
