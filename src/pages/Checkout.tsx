@@ -298,7 +298,7 @@ const Checkout = () => {
                                                             const img = item.product.images[0];
                                                             if (!img) return '/placeholder-product.svg';
                                                             if (img.startsWith('data:') || img.startsWith('http')) return img;
-                                                            return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+                                                            return `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${img}`;
                                                         })()}
                                                         alt={item.product.name}
                                                         className="w-full h-full object-cover rounded"

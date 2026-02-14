@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Booking {
   _id: string;
@@ -82,7 +83,8 @@ const PatientDashboard = () => {
 
       try {
         const token = getToken();
-        const response = await fetch(`http://localhost:5000/api/bookings/patient/${user.id}`, {
+        const apiUrl = API_BASE_URL;
+        const response = await fetch(`${apiUrl}/bookings/patient/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

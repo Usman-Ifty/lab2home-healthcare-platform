@@ -26,7 +26,7 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
     const getImageUrl = (img: string | undefined) => {
         if (!img) return '/placeholder-product.svg';

@@ -25,6 +25,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 import { createBooking } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -101,8 +102,9 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
       setLoadingSlots(true);
       try {
         const formattedDate = format(date, 'yyyy-MM-dd');
+        const apiUrl = API_BASE_URL;
         const response = await fetch(
-          `http://localhost:5000/api/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
+          `${apiUrl}/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
         );
         const data = await response.json();
 

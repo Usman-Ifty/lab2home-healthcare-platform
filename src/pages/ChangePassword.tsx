@@ -20,8 +20,9 @@ import {
     Send
 } from "lucide-react";
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = API_BASE_URL;
 
 type Step = "request" | "verify" | "change";
 
@@ -194,10 +195,10 @@ export default function ChangePassword() {
                                     <React.Fragment key={s.id}>
                                         <motion.div
                                             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${isCompleted
-                                                    ? "bg-success/20 text-success"
-                                                    : isCurrent
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : "bg-muted text-muted-foreground"
+                                                ? "bg-success/20 text-success"
+                                                : isCurrent
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "bg-muted text-muted-foreground"
                                                 }`}
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -391,10 +392,10 @@ export default function ChangePassword() {
                                                         <div
                                                             key={level}
                                                             className={`h-1 flex-1 rounded-full transition-colors ${newPassword.length >= level * 3
-                                                                    ? level <= 2
-                                                                        ? "bg-warning"
-                                                                        : "bg-success"
-                                                                    : "bg-muted"
+                                                                ? level <= 2
+                                                                    ? "bg-warning"
+                                                                    : "bg-success"
+                                                                : "bg-muted"
                                                                 }`}
                                                         />
                                                     ))}
@@ -415,8 +416,8 @@ export default function ChangePassword() {
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                                     className={`pl-11 pr-11 h-12 ${confirmPassword && confirmPassword === newPassword
-                                                            ? "border-success focus:ring-success"
-                                                            : ""
+                                                        ? "border-success focus:ring-success"
+                                                        : ""
                                                         }`}
                                                 />
                                                 <button

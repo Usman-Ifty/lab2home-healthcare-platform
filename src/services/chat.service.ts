@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:5000/api/chat';
+import { API_BASE_URL } from '@/lib/api';
+const API_URL = `${API_BASE_URL}/chat`;
 
 export const chatService = {
     createConversation: async (targetUserId: string, token: string, targetUserType?: string) => {

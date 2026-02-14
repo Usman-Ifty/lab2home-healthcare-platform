@@ -24,6 +24,7 @@ import {
   Save
 } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Booking {
   _id: string;
@@ -65,13 +66,14 @@ const LabDashboard = () => {
         const token = getToken();
 
         // Fetch bookings
-        const bookingsResponse = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
+        const apiUrl = API_BASE_URL;
+        const bookingsResponse = await fetch(`${apiUrl}/bookings/lab/${user.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const bookingsData = await bookingsResponse.json();
 
         // Fetch lab details including time slots
-        const labResponse = await fetch(`http://localhost:5000/api/labs/${user.id}/tests`, {
+        const labResponse = await fetch(`${apiUrl}/labs/${user.id}/tests`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const labData = await labResponse.json();
@@ -130,7 +132,8 @@ const LabDashboard = () => {
     setSavingSlots(true);
     try {
       const token = getToken();
-      const response = await fetch(`http://localhost:5000/api/labs/${user.id}/time-slots`, {
+      const apiUrl = API_BASE_URL;
+      const response = await fetch(`${apiUrl}/labs/${user.id}/time-slots`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
