@@ -102,7 +102,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
       try {
         const formattedDate = format(date, 'yyyy-MM-dd');
         const response = await fetch(
-          `http://localhost:5000/api/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
+          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
         );
         const data = await response.json();
 

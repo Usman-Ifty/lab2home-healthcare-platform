@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Import centralized storage utility
 import * as storage from '@/utils/storage';
@@ -133,7 +133,7 @@ export const authAPI = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('http://localhost:5000/api/auth/signup/lab', {
+    const response = await fetch(`${API_BASE_URL}/auth/signup/lab`, {
       method: 'POST',
       headers,
       body: formData, // Don't set Content-Type - browser will set it with boundary
@@ -183,7 +183,7 @@ export const authAPI = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('http://localhost:5000/api/auth/signup/phlebotomist', {
+    const response = await fetch(`${API_BASE_URL}/auth/signup/phlebotomist`, {
       method: 'POST',
       headers,
       body: formData, // Don't set Content-Type - browser will set it with boundary
@@ -294,7 +294,7 @@ export const uploadReport = async (bookingId: string, file: File): Promise<ApiRe
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/upload-report`, {
+  const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/upload-report`, {
     method: 'POST',
     headers,
     body: formData,

@@ -52,7 +52,7 @@ const LabUploadReport: React.FC = () => {
         const token = getToken();
         // Fetch all bookings, we'll filter client side for now as backend API returns all
         // Ideally backend should support filtering by reportUrl existence
-        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}?status=completed`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bookings/lab/${user.id}?status=completed`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
