@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,9 @@ import {
 import { ShoppingCart, Heart, Loader2, Package, Star, Minus, Plus, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as marketplaceService from '@/services/marketplace.service';
+import RatingSummary from '@/components/shared/RatingSummary';
+import FeedbackForm from '@/components/shared/FeedbackForm';
+import FeedbackList from '@/components/shared/FeedbackList';
 
 const ProductDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -28,8 +30,9 @@ const ProductDetails = () => {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState<string>('');
+    const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
-    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         if (id) {
@@ -113,6 +116,11 @@ const ProductDetails = () => {
         if (!img) return '/placeholder-product.svg';
         if (img.startsWith('data:') || img.startsWith('http')) return img;
         return `${API_URL}${img}`;
+    };
+
+    const handleReviewSubmitted = () => {
+        setReviewRefreshKey((k) => k + 1);
+        fetchProduct(); // Refresh to get updated averageRating
     };
 
     if (loading) {
@@ -231,6 +239,16 @@ const ProductDetails = () => {
                             </div>
 
                             <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">{product.name}</h1>
+
+                            {/* Rating Display */}
+                            <RatingSummary
+                                targetType="product"
+                                targetId={id!}
+                                compact
+                                refreshKey={reviewRefreshKey}
+                                className="mt-2"
+                            />
+
                             <div className="flex items-baseline gap-4 mt-4">
                                 <span className="text-3xl font-bold text-primary">Rs. {product.price.toFixed(2)}</span>
                                 {product.compareAtPrice && (
@@ -339,6 +357,36 @@ const ProductDetails = () => {
                                     <Share2 className="h-5 w-5" />
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Reviews Section */}
+                <Separator className="my-12" />
+                <div className="space-y-8">
+                    <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <RatingSummary
+                                targetType="product"
+                                targetId={id!}
+                                refreshKey={reviewRefreshKey}
+                            />
+                            {token && (
+                                <FeedbackForm
+                                    targetType="product"
+                                    targetId={id!}
+                                    targetName={product.name}
+                                    onSubmitted={handleReviewSubmitted}
+                                />
+                            )}
+                        </div>
+                        <div className="lg:col-span-2">
+                            <FeedbackList
+                                targetType="product"
+                                targetId={id!}
+                                refreshKey={reviewRefreshKey}
+                            />
                         </div>
                     </div>
                 </div>

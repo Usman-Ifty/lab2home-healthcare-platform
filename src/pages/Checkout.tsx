@@ -100,7 +100,7 @@ const Checkout = () => {
             if (paymentMethod === 'online' && paymentData) {
                 toast.info('Redirecting to secure payment gateway...');
 
-                // Create and submit a dynamic form for PayFast
+                // Create and submit a dynamic form for JazzCash
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = paymentData.action_url;
@@ -257,7 +257,7 @@ const Checkout = () => {
                                                 <CreditCard className="h-5 w-5" />
                                                 <div>
                                                     <p className="font-medium">Online Payment</p>
-                                                    <p className="text-sm text-gray-500">Pay securely via PayFast</p>
+                                                    <p className="text-sm text-gray-500">Pay securely via JazzCash</p>
                                                 </div>
                                             </Label>
                                         </div>
@@ -298,7 +298,7 @@ const Checkout = () => {
                                                             const img = item.product.images[0];
                                                             if (!img) return '/placeholder-product.svg';
                                                             if (img.startsWith('data:') || img.startsWith('http')) return img;
-                                                            return `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${img}`;
+                                                            return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
                                                         })()}
                                                         alt={item.product.name}
                                                         className="w-full h-full object-cover rounded"

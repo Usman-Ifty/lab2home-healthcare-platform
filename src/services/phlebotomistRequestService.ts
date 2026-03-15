@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '@/lib/api';
+// API Base URL
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Import storage utility for token management
 import * as storage from '@/utils/storage';

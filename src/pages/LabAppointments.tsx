@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { getToken } from "@/utils/storage";
 import { toast } from "sonner";
-import { API_BASE_URL } from "@/lib/api";
 
 import {
   Calendar,
@@ -86,8 +85,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
 
       try {
         const token = getToken();
-        const apiUrl = API_BASE_URL;
-        const response = await fetch(`${apiUrl}/bookings/lab/${user.id}`, {
+        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -131,8 +129,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
   const updateAppointment = async (updated: Appointment) => {
     try {
       const token = getToken();
-      const apiUrl = API_BASE_URL;
-      const response = await fetch(`${apiUrl}/bookings/${updated._id}/status`, {
+      const response = await fetch(`http://localhost:5000/api/bookings/${updated._id}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -160,8 +157,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
   const deleteAppointment = async (id: string) => {
     try {
       const token = getToken();
-      const apiUrl = API_BASE_URL;
-      const response = await fetch(`${apiUrl}/bookings/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/bookings/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

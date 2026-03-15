@@ -23,8 +23,8 @@ export const getAvailableLabs = async (req: Request, res: Response): Promise<voi
 
         const labs = await Lab.find(query)
             .populate('availableTests', 'name category basePrice reportDeliveryTime')
-            .select('labName email phone labAddress operatingHours availableTests timeSlots')
-            .sort({ labName: 1 });
+            .select('labName email phone labAddress operatingHours availableTests timeSlots averageRating totalReviews')
+            .sort({ averageRating: -1, labName: 1 });
 
         res.status(200).json({
             success: true,
@@ -161,8 +161,8 @@ export const getLabsByTest = async (req: Request, res: Response): Promise<void> 
             hasConfiguredTests: true,
             availableTests: testId,
         })
-            .select('labName email phone labAddress operatingHours')
-            .sort({ labName: 1 });
+            .select('labName email phone labAddress operatingHours averageRating totalReviews')
+            .sort({ averageRating: -1, labName: 1 });
 
         res.status(200).json({
             success: true,

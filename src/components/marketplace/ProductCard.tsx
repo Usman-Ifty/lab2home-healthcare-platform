@@ -15,6 +15,8 @@ interface ProductCardProps {
         stock: number;
         images: string[];
         isFeatured?: boolean;
+        averageRating?: number;
+        totalReviews?: number;
     };
     onAddToCart?: (productId: string) => void;
     onAddToWishlist?: (productId: string) => void;
@@ -26,7 +28,7 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
 
-    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     const getImageUrl = (img: string | undefined) => {
         if (!img) return '/placeholder-product.svg';
@@ -164,6 +166,29 @@ const ProductCard = ({ product, onAddToCart, onAddToWishlist, isInWishlist = fal
                 <h3 className="font-bold text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300 min-h-[3.5rem]">
                     {product.name}
                 </h3>
+
+                {/* Rating */}
+                {(product.averageRating != null && product.averageRating > 0) && (
+                    <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={star}
+                                    className={`h-3.5 w-3.5 ${star <= Math.round(product.averageRating!)
+                                            ? 'fill-amber-400 text-amber-400'
+                                            : 'fill-gray-200 text-gray-200'
+                                        }`}
+                                />
+                            ))}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">
+                            {product.averageRating.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            ({product.totalReviews})
+                        </span>
+                    </div>
+                )}
 
                 {/* Description */}
                 <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed min-h-[2.5rem]">

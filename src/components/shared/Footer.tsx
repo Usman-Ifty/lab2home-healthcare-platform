@@ -42,35 +42,13 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/#how-it-works" className="hover:text-background transition-colors">
+                  How It Works
+                </Link>
+              </li>
+              <li>
                 <Link to="/contact" className="hover:text-background transition-colors">
                   Contact Us
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal Policies */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2 text-background/80 text-sm">
-              <li>
-                <Link to="/privacy-policy" className="hover:text-background transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/refund-policy" className="hover:text-background transition-colors">
-                  Refund Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms-conditions" className="hover:text-background transition-colors">
-                  Terms & Conditions
-                </Link>
-              </li>
-              <li>
-                <Link to="/service-policy" className="hover:text-background transition-colors">
-                  Service Policy
                 </Link>
               </li>
             </ul>
@@ -80,10 +58,6 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4">Contact</h4>
             <div className="space-y-3 text-background/80">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">Office 24, Blue Area, Islamabad, Pakistan</span>
-              </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">+92 306 2221078</span>
@@ -97,8 +71,8 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-background/20 pt-8 text-center text-background/60 text-sm">
-          <p>© 2026 Lab2Home. All rights reserved.</p>
-          <p className="mt-1">Developed by Muhammad Usman Awan, Faizan Ahmad, Muhammad Ahmad</p>
+          <p>© 2025 Lab2Home. All rights reserved. | Supervised by Mahzaib Younus</p>
+          <p className="mt-2">Developed by Muhammad Usman Awan, Faizan Ahmad, Muhammad Ahmad</p>
         </div>
       </div>
     </footer>

@@ -1,5 +1,4 @@
-import { API_BASE_URL } from '@/lib/api';
-const API_URL = `${API_BASE_URL}/bookings`;
+const API_URL = 'http://localhost:5000/api/bookings';
 
 export const bookingService = {
     getPatientBookings: async (patientId: string, token: string) => {

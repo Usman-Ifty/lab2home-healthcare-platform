@@ -16,6 +16,7 @@ import chatRoutes from './routes/chat.routes';
 import contactRoutes from './routes/contact.routes';
 import adminRoutes from './routes/admin.routes';
 import marketplaceRoutes from './routes/marketplace.routes';
+import feedbackRoutes from './routes/feedback.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 import { initializeSocket } from './socket/chat.socket';
 import { setIO } from './controllers/chat.controller';
@@ -30,19 +31,7 @@ const httpServer = createServer(app);
 // Initialize Socket.io
 const io = new Server(httpServer, {
     cors: {
-        origin: (origin, callback) => {
-            if (!origin) return callback(null, true);
-            if (
-                allowedOrigins.indexOf(origin) !== -1 ||
-                origin.endsWith('.vercel.app') ||
-                origin.endsWith('.onrender.com') ||
-                process.env.NODE_ENV === 'development'
-            ) {
-                callback(null, true);
-            } else {
-                callback(null, false);
-            }
-        },
+        origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:5173', process.env.FRONTEND_URL || 'http://localhost:8080'],
         credentials: true,
     },
 });
@@ -55,34 +44,9 @@ setIO(io);
 export const getIO = () => io;
 
 // Middleware
-const allowedOrigins = [
-    'http://localhost:8080',
-    'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    process.env.FRONTEND_URL
-].filter(Boolean) as string[];
-
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        if (
-            allowedOrigins.indexOf(origin) !== -1 ||
-            origin.endsWith('.vercel.app') ||
-            origin.endsWith('.onrender.com') ||
-            process.env.NODE_ENV === 'development'
-        ) {
-            callback(null, true);
-        } else {
-            callback(null, false); // Allow Vercel to handle its own errors instead of crashing backend
-        }
-    },
+    origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:5173', process.env.FRONTEND_URL || 'http://localhost:8080'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -123,6 +87,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error Handling Middleware
 app.use(notFound); // 404 handler

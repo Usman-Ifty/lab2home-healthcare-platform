@@ -23,6 +23,7 @@ import {
   ShoppingCart,
   Heart,
   Package,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,8 @@ const roleConfig = {
       { name: "Wishlist", path: "/patient/wishlist", icon: Heart },
       { name: "My Orders", path: "/patient/orders", icon: Package },
       { name: "Messages", path: "/patient/messages", icon: MessageSquare },
+      { name: "My Reviews", path: "/patient/my-reviews", icon: Star },
+      { name: "Rate Phlebotomist", path: "/patient/rate-phlebotomist", icon: TestTube },
     ],
   },
   lab: {
@@ -61,6 +64,7 @@ const roleConfig = {
       { name: "Appointments", path: "/lab/appointments", icon: Calendar },
       { name: "Upload Reports", path: "/lab/reports", icon: FileText },
       { name: "Messages", path: "/lab/messages", icon: MessageSquare },
+      { name: "Reviews", path: "/lab/reviews", icon: Star },
     ],
   },
   phlebotomist: {
@@ -72,6 +76,7 @@ const roleConfig = {
       { name: "Appointments", path: "/phlebotomist/appointments", icon: Calendar },
       { name: "Sample Collection", path: "/phlebotomist/samples", icon: TestTube },
       { name: "Messages", path: "/phlebotomist/messages", icon: MessageSquare },
+      { name: "Reviews", path: "/phlebotomist/reviews", icon: Star },
     ],
   },
   admin: {
@@ -85,6 +90,7 @@ const roleConfig = {
       { name: "Manage Phlebotomists", path: "/admin/phlebotomists", icon: Users },
       { name: "Diagnostic Tests", path: "/admin/tests", icon: TestTube },
       { name: "Marketplace", path: "/admin/marketplace", icon: ShoppingBag },
+      { name: "Product Reviews", path: "/admin/product-reviews", icon: Star },
     ],
   },
 };

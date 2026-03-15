@@ -232,14 +232,6 @@ const Contact = () => {
                                         sub="For general inquiries"
                                         delay={0.3}
                                     />
-                                    <InfoItemCard
-                                        icon={<MapPin className="w-5 h-5" />}
-                                        iconColor="bg-blue-500 text-white"
-                                        title="Office Address"
-                                        main="Office 24, Blue Area"
-                                        sub="Islamabad, Pakistan"
-                                        delay={0.4}
-                                    />
 
                                 </div>
                             </SoftCard>

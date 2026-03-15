@@ -178,6 +178,7 @@ const Marketplace = () => {
                                 <SelectItem value="price-asc">Price: Low to High</SelectItem>
                                 <SelectItem value="price-desc">Price: High to Low</SelectItem>
                                 <SelectItem value="name">Name: A to Z</SelectItem>
+                                <SelectItem value="rating">Top Rated</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

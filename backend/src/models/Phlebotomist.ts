@@ -19,6 +19,8 @@ export interface IPhlebotomist extends Document {
   };
   isAvailable?: boolean;
   assignedLab?: mongoose.Types.ObjectId;
+  averageRating: number;
+  totalReviews: number;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -86,6 +88,16 @@ const phlebotomistSchema = new Schema<IPhlebotomist>(
     assignedLab: {
       type: Schema.Types.ObjectId,
       ref: 'Lab',
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
     },
     isVerified: {
       type: Boolean,

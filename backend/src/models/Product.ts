@@ -10,6 +10,8 @@ export interface IProduct extends Document {
     isActive: boolean;
     isFeatured: boolean;
     specifications?: Record<string, any>;
+    averageRating: number;
+    totalReviews: number;
     tags: string[];
     createdAt: Date;
     updatedAt: Date;
@@ -75,6 +77,16 @@ const productSchema = new Schema<IProduct>(
         specifications: {
             type: Schema.Types.Mixed,
             default: {},
+        },
+        averageRating: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 5,
+        },
+        totalReviews: {
+            type: Number,
+            default: 0,
         },
         tags: {
             type: [String],

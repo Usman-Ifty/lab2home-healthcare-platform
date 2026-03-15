@@ -35,6 +35,9 @@ import LabTestSelection from "./pages/LabTestSelection";
 import ChangePassword from "./pages/ChangePassword";
 import PhlebotomistAppointments from "./pages/PhlebotomistAppointments";
 import PhlebotomistSamples from "./pages/PhlebotomistSamples";
+import LabReviews from "./pages/LabReviews";
+import PhlebotomistReviews from "./pages/PhlebotomistReviews";
+import AdminProductReviews from "./pages/AdminProductReviews";
 
 import Marketplace from "./pages/Marketplace";
 import Cart from "./pages/Cart";
@@ -45,10 +48,6 @@ import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import RefundPolicy from "./pages/RefundPolicy";
-import TermsConditions from "./pages/TermsConditions";
-import ServicePolicy from "./pages/ServicePolicy";
 
 import { NotificationProvider } from "@/contexts/NotificationContext";
 
@@ -72,11 +71,6 @@ const App = () => (
 
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
-
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/refund-policy" element={<RefundPolicy />} />
-              <Route path="/terms-conditions" element={<TermsConditions />} />
-              <Route path="/service-policy" element={<ServicePolicy />} />
 
               {/* PATIENT ROUTES */}
               <Route
@@ -227,6 +221,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/lab/reviews"
+                element={
+                  <ProtectedRoute allowedRole="lab">
+                    <LabReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lab/change-password"
                 element={
                   <ProtectedRoute allowedRole="lab">
@@ -269,6 +271,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/phlebotomist/reviews"
+                element={
+                  <ProtectedRoute allowedRole="phlebotomist">
+                    <PhlebotomistReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/phlebotomist/change-password"
                 element={
                   <ProtectedRoute allowedRole="phlebotomist">
@@ -283,6 +293,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="admin">
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/product-reviews"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminProductReviews />
                   </ProtectedRoute>
                 }
               />

@@ -10,7 +10,7 @@ import path from 'path';
 import fs from 'fs';
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail, sendAdminNewOrderEmail } from '../services/email.service';
 import Patient from '../models/Patient';
-import * as payfastService from '../services/payfast.service';
+import * as jazzcashService from '../services/jazzcash.service';
 
 // ============================================
 // MULTER CONFIGURATION FOR PRODUCT IMAGES
@@ -84,6 +84,8 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
             sortOption = { price: -1 };
         } else if (sortBy === 'name') {
             sortOption = { name: 1 };
+        } else if (sortBy === 'rating') {
+            sortOption = { averageRating: -1, totalReviews: -1 };
         }
 
         const [products, total] = await Promise.all([
@@ -744,12 +746,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         if (paymentMethod === 'online') {
             try {
                 const patient = await Patient.findById(patientId);
-                paymentData = payfastService.generatePaymentData({
-                    orderId: order.orderNumber,
+                paymentData = jazzcashService.generatePaymentData({
+                    orderId: order._id.toString(),
                     amount: total,
-                    itemName: `Order ${order.orderNumber}`,
-                    patientEmail: patient?.email || '',
-                    patientName: patient?.fullName || 'Customer',
+                    description: `Order ${order.orderNumber}`,
+                    returnUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/marketplace/jazzcash-return`,
                 });
             } catch (payError) {
                 console.error('Error generating PayFast data:', payError);
@@ -1373,50 +1374,54 @@ export const processRefund = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// HANDLE PAYFAST ITN (Instant Transaction Notification)
-export const handlePayFastITN = async (req: Request, res: Response): Promise<void> => {
+// HANDLE JAZZCASH RETURN
+export const handleJazzCashReturn = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('Received PayFast ITN:', req.body);
+        console.log('Received JazzCash Return:', req.body);
 
         const {
-            m_payment_id, // This is our orderNumber
-            pf_payment_id, // PayFast transaction ID
-            payment_status,
-            item_name,
-            amount_gross,
-            signature,
+            pp_ResponseCode,
+            pp_TxnRefNo,
+            ppmpf_1, // This holds our order _id
+            pp_SecureHash,
         } = req.body;
 
         // 1. Validate Signature
-        const receivedSignature = signature;
+        const receivedSignature = pp_SecureHash;
         const dataToVerify = { ...req.body };
-        delete dataToVerify.signature;
+        delete dataToVerify.pp_SecureHash;
 
-        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
+        const calculatedSignature = jazzcashService.generateSignature(dataToVerify, process.env.JAZZCASH_INTEGRITY_SALT || '');
 
-        if (receivedSignature !== calculatedSignature) {
-            console.error('PayFast Signature Validation Failed');
-            res.status(400).send('Invalid signature');
+        if (receivedSignature && receivedSignature !== calculatedSignature) {
+            console.error('JazzCash Signature Validation Failed');
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel?reason=invalid_signature`);
+            return;
+        }
+
+        const orderId = ppmpf_1;
+        
+        if (!orderId) {
+            console.error(`Order not found in return payload.`);
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
             return;
         }
 
         // 2. Find Order
-        const order = await Order.findOne({ orderNumber: m_payment_id });
+        const order = await Order.findById(orderId);
         if (!order) {
-            console.error(`Order not found for ITN: ${m_payment_id}`);
-            res.status(404).send('Order not found');
+            console.error(`Order not found: ${orderId}`);
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
             return;
         }
 
         // 3. Update Order Status
-        if (payment_status === 'COMPLETE') {
+        if (pp_ResponseCode === '000') {
             order.paymentStatus = 'completed';
-            order.transactionId = pf_payment_id;
-            // You might want to update order status to 'confirmed' automatically
+            order.transactionId = pp_TxnRefNo;
             order.status = 'confirmed';
             await order.save();
 
-            // Notify patient
             await Notification.create({
                 user: order.patient,
                 userType: 'patient',
@@ -1425,7 +1430,11 @@ export const handlePayFastITN = async (req: Request, res: Response): Promise<voi
                 message: `Payment for order ${order.orderNumber} was successful. Your order is now confirmed.`,
                 metadata: { orderId: order._id },
             });
-        } else if (payment_status === 'FAILED') {
+
+            console.log(`✅ Marketplace Order ${order._id} marked as PAID via JazzCash`);
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-success`);
+            return;
+        } else {
             order.paymentStatus = 'failed';
             await order.save();
 
@@ -1437,12 +1446,13 @@ export const handlePayFastITN = async (req: Request, res: Response): Promise<voi
                 message: `Payment for order ${order.orderNumber} failed. Please try again or contact support.`,
                 metadata: { orderId: order._id },
             });
-        }
 
-        // PayFast expects a 200 OK response
-        res.status(200).send('OK');
+            console.log(`⚠️ Payment FAILED for marketplace order ${order._id} (Response Code: ${pp_ResponseCode})`);
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
+            return;
+        }
     } catch (error: any) {
-        console.error('PayFast ITN Error:', error);
-        res.status(500).send('Internal Server Error');
+        console.error('JazzCash Return Error:', error);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
     }
 };

@@ -24,6 +24,6 @@ router.put('/:id/status', protect, updateBookingStatus);
 router.delete('/:id', protect, cancelBooking);
 router.post('/:id/upload-report', protect, upload.single('report'), uploadReport);
 router.get('/:id/report', getReport); // Public route for viewing reports
-router.post('/itn', handleBookingITN);
+router.post('/jazzcash-return', handleBookingITN);
 
 export default router;

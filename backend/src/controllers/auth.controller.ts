@@ -715,8 +715,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
   try {
     const { email, password } = req.body;
 
-    console.log(`🔐 Login attempt for: ${email}`);
-
     if (!email || !password) {
       res.status(400).json({
         success: false,
@@ -729,7 +727,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
     let patient = await Patient.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (patient) {
-      console.log(`👤 Found as Patient: ${email}`);
       // Found as patient
       if (!patient.isVerified) {
         res.status(403).json({
@@ -787,7 +784,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
     let lab = await Lab.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (lab) {
-      console.log(`🏢 Found as Lab: ${email}`);
       // Found as lab
       if (!lab.isVerified) {
         res.status(403).json({
@@ -846,7 +842,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
     let phlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (phlebotomist) {
-      console.log(`🩸 Found as Phlebotomist: ${email}`);
       // Found as phlebotomist
       if (!phlebotomist.isVerified) {
         res.status(403).json({
@@ -904,7 +899,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
     let admin = await Admin.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (admin) {
-      console.log(`🛡️ Found as Admin: ${email}`);
       // Found as admin
       if (!admin.isActive) {
         res.status(403).json({
@@ -947,7 +941,6 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
     }
 
     // Not found in any collection
-    console.log(`❓ User not found in any collection: ${email}`);
     res.status(401).json({
       success: false,
       message: 'Invalid email or password',

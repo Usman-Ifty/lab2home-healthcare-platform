@@ -23,6 +23,9 @@ import {
 import TestBookingForm from "@/components/patient/TestBookingForm";
 import { toast } from "sonner";
 import { fetchAvailableLabs } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import FeedbackForm from "@/components/shared/FeedbackForm";
+import RatingSummary from "@/components/shared/RatingSummary";
 
 export interface Test {
   _id: string;
@@ -43,6 +46,8 @@ export interface Lab {
   distance?: string;
   logo?: string;
   availableTests: Test[];
+  averageRating?: number;
+  totalReviews?: number;
   operatingHours?: {
     open: string;
     close: string;
@@ -50,9 +55,11 @@ export interface Lab {
 }
 
 const BookTest: React.FC = () => {
+  const { token } = useAuth();
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(true);
+  const [labReviewRefresh, setLabReviewRefresh] = useState(0);
 
   useEffect(() => {
     const loadLabs = async () => {
@@ -218,12 +225,18 @@ const BookTest: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                      {lab.rating && (
+                      {(lab.averageRating != null && lab.averageRating > 0) ? (
+                        <span className="flex items-center gap-1 text-xs font-medium text-warning">
+                          <Star className="h-3 w-3 fill-warning" />
+                          {lab.averageRating.toFixed(1)}
+                          <span className="text-muted-foreground">({lab.totalReviews})</span>
+                        </span>
+                      ) : lab.rating ? (
                         <span className="flex items-center gap-1 text-xs font-medium text-warning">
                           <Star className="h-3 w-3 fill-warning" />
                           {lab.rating}
                         </span>
-                      )}
+                      ) : null}
                       <span className="text-xs text-muted-foreground">•</span>
                       <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         {lab.availableTests?.length || 0} Tests
@@ -252,6 +265,34 @@ const BookTest: React.FC = () => {
           transition={{ delay: 0.3 }}
           className="space-y-6"
         >
+          {/* Lab Reviews - shown when a lab is selected */}
+          {selectedLab && (
+            <Card className="p-6 shadow-card">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
+                  <Star className="h-4 w-4 text-warning" />
+                </div>
+                Reviews for {selectedLab.labName}
+              </h3>
+              <RatingSummary
+                targetType="lab"
+                targetId={selectedLab._id}
+                compact
+                refreshKey={labReviewRefresh}
+              />
+              {token && (
+                <div className="mt-4">
+                  <FeedbackForm
+                    targetType="lab"
+                    targetId={selectedLab._id}
+                    targetName={selectedLab.labName}
+                    onSubmitted={() => setLabReviewRefresh(k => k + 1)}
+                  />
+                </div>
+              )}
+            </Card>
+          )}
+
           {/* Why Home Collection */}
           <Card className="p-6 shadow-card overflow-hidden relative">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-secondary/20 to-transparent rounded-bl-full" />

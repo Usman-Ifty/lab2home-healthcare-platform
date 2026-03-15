@@ -26,6 +26,8 @@ export interface ILab extends Document {
   availableTests: mongoose.Types.ObjectId[]; // References to Test model
   hasConfiguredTests: boolean;
   certifications?: string[];
+  averageRating: number;
+  totalReviews: number;
   isVerified: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -122,6 +124,16 @@ const labSchema = new Schema<ILab>(
     certifications: {
       type: [String],
       default: [],
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
     },
     isVerified: {
       type: Boolean,

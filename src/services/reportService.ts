@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-import { API_BASE_URL } from '@/lib/api';
-const API_URL = API_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 import { getToken } from '@/utils/storage';
 
@@ -57,7 +56,7 @@ export const getPatientReports = async (patientId: string): Promise<ReportBookin
  * Get report URL for viewing/downloading
  */
 export const getReportUrl = (bookingId: string): string => {
-    const baseUrl = API_BASE_URL.replace('/api', '');
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     return `${baseUrl}/api/bookings/${bookingId}/report`;
 };
 
