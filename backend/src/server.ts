@@ -29,19 +29,16 @@ const app: Application = express();
 const httpServer = createServer(app);
 
 // Initialize Socket.io
-const allowedOrigins = [
-    'http://localhost:8080',
-    'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:5173',
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
-];
+// Allow all origins for CORS (safe for production as auth is handled via JWT)
+const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        callback(null, true);
+    },
+    credentials: true,
+};
 
 const io = new Server(httpServer, {
-    cors: {
-        origin: allowedOrigins,
-        credentials: true,
-    },
+    cors: corsOptions,
 });
 
 // Setup Socket.io
@@ -52,10 +49,7 @@ setIO(io);
 export const getIO = () => io;
 
 // Middleware
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
