@@ -45,13 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       storage.migrateFromLocalStorage();
 
       const storedToken = storage.getToken();
-      console.log('🔍 Checking auth on mount, token exists:', !!storedToken);
 
       if (storedToken) {
         setToken(storedToken);
         try {
           const response = await authAPI.getMe();
-          console.log('📥 getMe response:', response);
 
           if (response.success && response.data) {
             const userData: User = {
@@ -68,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(userData);
             storage.setUser(userData);
           } else {
-            console.log('❌ Auth check failed, removing token');
             storage.clearAuth();
             removeApiToken();
             setToken(null);
@@ -96,12 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setToken(null);
 
-      console.log('🔐 Starting login process...');
-
       // Call unified login endpoint - auto-detects patient or lab
       const response = await authAPI.login(email, password);
-
-      console.log('📥 Login response:', response);
 
       if (response.success && response.data) {
         console.log('✅ Login successful, user data:', response.data.user);
@@ -131,7 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Navigate based on user type
         const path = `/${userData.userType}`;
-        console.log('🚀 Navigating to:', path);
         navigate(path, { replace: true });
 
         return { success: true };
