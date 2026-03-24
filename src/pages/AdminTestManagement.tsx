@@ -27,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Edit, Trash2, Search, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api';
 
 const AdminTestManagement = () => {
     const { token } = useAuth();
@@ -48,7 +49,7 @@ const AdminTestManagement = () => {
         isActive: true
     });
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchTests();
@@ -57,7 +58,7 @@ const AdminTestManagement = () => {
     const fetchTests = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_URL}/api/tests?includeInactive=true`);
+            const response = await fetch(`${API_URL}/tests?includeInactive=true`);
             const data = await response.json();
             if (data.success) {
                 setTests(data.data);
@@ -75,7 +76,7 @@ const AdminTestManagement = () => {
         if (!token) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/tests`, {
+            const response = await fetch(`${API_URL}/tests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ const AdminTestManagement = () => {
         if (!token || !currentTestId) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/tests/${currentTestId}`, {
+            const response = await fetch(`${API_URL}/tests/${currentTestId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ const AdminTestManagement = () => {
         if (!token || !confirm('Are you sure you want to deactivate this test?')) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/tests/${testId}`, {
+            const response = await fetch(`${API_URL}/tests/${testId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -181,7 +182,7 @@ const AdminTestManagement = () => {
         if (!token) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/tests/${testId}`, {
+            const response = await fetch(`${API_URL}/tests/${testId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

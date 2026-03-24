@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { TestTube, Save, CheckCircle2, AlertCircle, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { getToken } from '@/utils/storage';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Test {
     _id: string;
@@ -38,7 +39,7 @@ const LabTestSelection = () => {
     useEffect(() => {
         const fetchTests = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/tests');
+                const response = await fetch(`${API_BASE_URL}/tests`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -65,7 +66,7 @@ const LabTestSelection = () => {
             if (!user?.id) return;
 
             try {
-                const response = await fetch(`http://localhost:5000/api/labs/${user.id}/tests`);
+                const response = await fetch(`${API_BASE_URL}/labs/${user.id}/tests`);
                 const data = await response.json();
 
                 if (data.success && data.data.availableTests) {
@@ -109,7 +110,7 @@ const LabTestSelection = () => {
         setSaving(true);
         try {
             const token = getToken();
-            const response = await fetch(`http://localhost:5000/api/labs/${user?.id}/tests`, {
+            const response = await fetch(`${API_BASE_URL}/labs/${user?.id}/tests`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

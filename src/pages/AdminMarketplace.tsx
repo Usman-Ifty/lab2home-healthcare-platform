@@ -426,7 +426,7 @@ const AdminMarketplace = () => {
                                                             <img
                                                                 src={product.images[0].startsWith('http') || product.images[0].startsWith('data:')
                                                                     ? product.images[0]
-                                                                    : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${product.images[0]}`}
+                                                                    : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${product.images[0]}`}
                                                                 alt={product.name}
                                                                 className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
                                                                 onError={(e) => {

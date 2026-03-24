@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { getToken } from "@/utils/storage";
 import { toast } from "sonner";
-import { uploadReport } from "@/lib/api";
+import { uploadReport, API_BASE_URL } from "@/lib/api";
 import {
   FileText,
   Upload,
@@ -52,7 +52,7 @@ const LabUploadReport: React.FC = () => {
         const token = getToken();
         // Fetch all bookings, we'll filter client side for now as backend API returns all
         // Ideally backend should support filtering by reportUrl existence
-        const response = await fetch(`http://localhost:5000/api/bookings/lab/${user.id}?status=completed`, {
+        const response = await fetch(`${API_BASE_URL}/bookings/lab/${user.id}?status=completed`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
