@@ -38,6 +38,8 @@ import PhlebotomistSamples from "./pages/PhlebotomistSamples";
 import LabReviews from "./pages/LabReviews";
 import PhlebotomistReviews from "./pages/PhlebotomistReviews";
 import AdminProductReviews from "./pages/AdminProductReviews";
+import MyReviews from "./pages/MyReviews";
+import RatePhlebotomist from "./pages/RatePhlebotomist";
 
 import Marketplace from "./pages/Marketplace";
 import Cart from "./pages/Cart";
@@ -175,6 +177,23 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRole="patient">
                     <PaymentCancel />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/patient/my-reviews"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <MyReviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/rate-phlebotomist"
+                element={
+                  <ProtectedRoute allowedRole="patient">
+                    <RatePhlebotomist />
                   </ProtectedRoute>
                 }
               />

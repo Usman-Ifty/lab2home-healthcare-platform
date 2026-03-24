@@ -100,7 +100,7 @@ const Checkout = () => {
             if (paymentMethod === 'online' && paymentData) {
                 toast.info('Redirecting to secure payment gateway...');
 
-                // Create and submit a dynamic form for JazzCash
+                // Create and submit a dynamic form for PayFast
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = paymentData.action_url;
@@ -257,7 +257,7 @@ const Checkout = () => {
                                                 <CreditCard className="h-5 w-5" />
                                                 <div>
                                                     <p className="font-medium">Online Payment</p>
-                                                    <p className="text-sm text-gray-500">Pay securely via JazzCash</p>
+                                                    <p className="text-sm text-gray-500">Pay securely via PayFast</p>
                                                 </div>
                                             </Label>
                                         </div>

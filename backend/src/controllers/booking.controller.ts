@@ -3,7 +3,7 @@ import Booking from '../models/Booking';
 import Test from '../models/Test';
 import Lab from '../models/Lab';
 import Patient from '../models/Patient';
-import * as jazzcashService from '../services/jazzcash.service';
+import * as payfastService from '../services/payfast.service';
 import Notification from '../models/Notification';
 
 // ============================================
@@ -106,14 +106,18 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
         let paymentData = null;
         if (paymentMethod === 'online') {
             try {
-                paymentData = jazzcashService.generatePaymentData({
+                paymentData = payfastService.generatePaymentData({
                     orderId: booking._id.toString(),
                     amount: totalAmount,
-                    description: `Booking for ${testDocs.map(t => t.name).join(', ')}`,
-                    returnUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/bookings/jazzcash-return`,
+                    itemName: `Lab Test Booking`,
+                    itemDescription: `Booking for ${testDocs.map(t => t.name).join(', ')}`,
+                    patientEmail: patientDoc.email,
+                    patientName: patientDoc.fullName,
+                    // Different notify URL for bookings
+                    notifyUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/bookings/itn`
                 });
             } catch (payError) {
-                console.error('Error generating JazzCash data for booking:', payError);
+                console.error('Error generating PayFast data for booking:', payError);
             }
         }
 
@@ -673,52 +677,48 @@ export const getReport = async (req: Request, res: Response): Promise<void> => {
     }
 };
 // ============================================
-// HANDLE JAZZCASH RETURN (Webhook / Redirect)
+// HANDLE PAYFAST ITN (Webhooks)
 // ============================================
 export const handleBookingITN = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('📥 Received JazzCash Return for Booking:', req.body);
+        console.log('📥 Received PayFast ITN for Booking:', req.body);
 
         const {
-            pp_ResponseCode,
-            pp_TxnRefNo,
-            ppmpf_1, // This holds our booking _id
-            pp_SecureHash,
+            m_payment_id,
+            pf_payment_id,
+            payment_status,
+            item_name,
+            amount_gross,
+            signature,
         } = req.body;
 
         // 1. Validate Signature
-        const receivedSignature = pp_SecureHash;
+        const receivedSignature = signature;
         const dataToVerify = { ...req.body };
-        delete dataToVerify.pp_SecureHash;
+        delete dataToVerify.signature;
 
-        const calculatedSignature = jazzcashService.generateSignature(dataToVerify, process.env.JAZZCASH_INTEGRITY_SALT || '');
+        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
 
-        if (receivedSignature && receivedSignature !== calculatedSignature) {
-            console.error('❌ JazzCash Signature Validation Failed for Booking');
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel?reason=invalid_signature`);
-            return;
-        }
-
-        const bookingId = ppmpf_1;
-
-        if (!bookingId) {
-            console.error(`❌ Booking not found in return payload.`);
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
+        if (receivedSignature !== calculatedSignature) {
+            console.error('❌ PayFast Signature Validation Failed for Booking');
+            res.status(400).send('Invalid signature');
             return;
         }
 
         // 2. Find Booking
-        const booking = await Booking.findById(bookingId);
+        const booking = await Booking.findById(m_payment_id);
         if (!booking) {
-            console.error(`❌ Booking not found: ${bookingId}`);
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
+            console.error(`❌ Booking not found for ITN: ${m_payment_id}`);
+            res.status(404).send('Booking not found');
             return;
         }
 
         // 3. Update Booking Status
-        if (pp_ResponseCode === '000') {
+        if (payment_status === 'COMPLETE') {
             booking.paymentStatus = 'paid';
-            booking.transactionId = pp_TxnRefNo;
+            booking.transactionId = pf_payment_id;
+            // For bookings, we might keep status as pending until lab confirms, 
+            // but we definitely mark as paid.
             await booking.save();
 
             // Notify patient
@@ -731,17 +731,15 @@ export const handleBookingITN = async (req: Request, res: Response): Promise<voi
                 relatedBooking: booking._id,
             });
 
-            console.log(`✅ Booking ${booking._id} marked as PAID via JazzCash`);
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-success`);
-            return;
-        } else {
-            console.log(`⚠️ Payment FAILED for booking ${booking._id} (Response Code: ${pp_ResponseCode})`);
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
-            return;
+            console.log(`✅ Booking ${booking._id} marked as PAID via PayFast`);
+        } else if (payment_status === 'FAILED') {
+            // paymentStatus stays pending or we could add a failed status
+            console.log(`⚠️ Payment FAILED for booking ${booking._id}`);
         }
 
+        res.status(200).send('OK');
     } catch (error) {
-        console.error('Error handling Booking JazzCash Return:', error);
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`);
+        console.error('Error handling Booking ITN:', error);
+        res.status(500).send('Internal Server Error');
     }
 };

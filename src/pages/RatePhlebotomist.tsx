@@ -30,10 +30,10 @@ const RatePhlebotomist = () => {
 
             // Fetch both completed bookings and user's past reviews in parallel
             const [bookingsRes, reviewsRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bookings/patient/${user.id}?status=completed`, {
+                fetch(`http://localhost:5000/api/bookings/patient/${user.id}?status=completed`, {
                     headers: { Authorization: `Bearer ${token}` },
                 }),
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/feedback/my-reviews?targetType=phlebotomist`, {
+                fetch(`http://localhost:5000/api/feedback/my-reviews?targetType=phlebotomist`, {
                     headers: { Authorization: `Bearer ${token}` },
                 })
             ]);

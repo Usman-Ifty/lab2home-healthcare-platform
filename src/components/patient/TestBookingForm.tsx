@@ -102,7 +102,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
       try {
         const formattedDate = format(date, 'yyyy-MM-dd');
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
+          `http://localhost:5000/api/labs/${selectedLab._id}/available-slots?date=${formattedDate}`
         );
         const data = await response.json();
 
@@ -668,7 +668,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
             <CreditCard className="h-5 w-5 text-accent" />
             <div>
               <p className="font-medium">Online Payment</p>
-              <p className="text-xs text-muted-foreground">Pay via JazzCash</p>
+              <p className="text-xs text-muted-foreground">Pay via PayFast</p>
             </div>
           </Label>
         </RadioGroup>

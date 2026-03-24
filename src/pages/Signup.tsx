@@ -37,6 +37,7 @@ import {
   Bike,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import logo from "/logo.svg";
 import { publicNavItems } from "@/config/public-nav";
@@ -196,68 +197,86 @@ const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => voi
 const PatientForm = ({
   form,
   onSubmit,
+  isLoading,
 }: {
   form: any;
   onSubmit: (data: SignupFormValues) => void;
+  isLoading?: boolean;
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-      <FormField
-        control={form.control}
-        name="fullName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" />
-              Full Name
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Full Name
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="email"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-primary" />
-              Email Address
-            </FormLabel>
-            <FormControl>
-              <Input type="email" placeholder="Ahmad@example.com" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Email Address
+              </FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="Ahmad@example.com" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="phone"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-primary" />
-              Phone Number
-            </FormLabel>
-            <FormControl>
-              <Input type="tel" placeholder="03XXXXXXXXX" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary" />
+                Phone Number
+              </FormLabel>
+              <FormControl>
+                <Input type="tel" placeholder="03XXXXXXXXX" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                Address
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Your complete address" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="dateOfBirth"
@@ -318,104 +337,96 @@ const PatientForm = ({
             </FormItem>
           )}
         />
+
+        {/* Password */}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  </button>
+                </div>
+              </FormControl>
+              <FormDescription className="text-xs">
+                At least 8 characters with an uppercase letter, number & special character
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Confirm Password */}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Confirm Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirmPassword ? (
+                      <Eye className="w-5 h-5" />
+                    ) : (
+                      <EyeOff className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
-
-
-      <FormField
-        control={form.control}
-        name="address"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Address
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="Your complete address" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Password */}
-      <FormField
-        control={form.control}
-        name="password"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-              </div>
-            </FormControl>
-            <FormDescription className="text-xs">
-              At least 8 characters with an uppercase letter, number & special character
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Confirm Password */}
-      <FormField
-        control={form.control}
-        name="confirmPassword"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Confirm Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <Eye className="w-5 h-5" />
-                  ) : (
-                    <EyeOff className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
 
       <Button
         type="submit"
         size="lg"
+        disabled={isLoading}
         className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
       >
-        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-        Create Patient Account
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Creating Account...
+          </>
+        ) : (
+          <>
+            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+            Create Patient Account
+          </>
+        )}
       </Button>
     </form>
   );
@@ -426,224 +437,238 @@ const PatientForm = ({
 const LabForm = ({
   form,
   onSubmit,
+  isLoading,
 }: {
   form: any;
   onSubmit: (data: SignupFormValues) => void;
+  isLoading?: boolean;
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-      <FormField
-        control={form.control}
-        name="fullName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" />
-              Contact Person Name
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Contact Person Name
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="email"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-primary" />
-              Email Address
-            </FormLabel>
-            <FormControl>
-              <Input type="email" placeholder="lab@example.com" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Email Address
+              </FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="lab@example.com" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="phone"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-primary" />
-              Phone Number
-            </FormLabel>
-            <FormControl>
-              <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary" />
+                Phone Number
+              </FormLabel>
+              <FormControl>
+                <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="labName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" />
-              Lab Name
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="ABC Diagnostic Lab" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="labName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                Lab Name
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="ABC Diagnostic Lab" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="licenseCopy"
-        render={({ field: { onChange, value, ...field } }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" />
-              Lab License Copy
-            </FormLabel>
-            <FormControl>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelectedFile(file);
-                        onChange(file);
-                      }
-                    }}
+        <FormField
+          control={form.control}
+          name="licenseCopy"
+          render={({ field: { onChange, value, ...field } }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Lab License Copy
+              </FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          onChange(file);
+                        }
+                      }}
+                      {...field}
+                    />
+                  </div>
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                      <FileText className="w-4 h-4" />
+                      <span className="flex-1 truncate">{selectedFile.name}</span>
+                      <span className="text-xs">
+                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription className="text-xs">
+                Upload a clear copy of your lab license (PDF only, max 5MB)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="labAddress"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                Lab Address
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Lab's complete address" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Password */}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
                     {...field}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  </button>
                 </div>
-                {selectedFile && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
-                    <FileText className="w-4 h-4" />
-                    <span className="flex-1 truncate">{selectedFile.name}</span>
-                    <span className="text-xs">
-                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                )}
-              </div>
-            </FormControl>
-            <FormDescription className="text-xs">
-              Upload a clear copy of your lab license (PDF only, max 5MB)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              </FormControl>
+              <FormDescription className="text-xs">
+                At least 8 characters with an uppercase letter, number & special character
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="labAddress"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Lab Address
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="Lab's complete address" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Password */}
-      <FormField
-        control={form.control}
-        name="password"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-              </div>
-            </FormControl>
-            <FormDescription className="text-xs">
-              At least 8 characters with an uppercase letter, number & special character
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Confirm Password */}
-      <FormField
-        control={form.control}
-        name="confirmPassword"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Confirm Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <Eye className="w-5 h-5" />
-                  ) : (
-                    <EyeOff className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        {/* Confirm Password */}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Confirm Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirmPassword ? (
+                      <Eye className="w-5 h-5" />
+                    ) : (
+                      <EyeOff className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <Button
         type="submit"
         size="lg"
+        disabled={isLoading}
         className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
       >
-        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-        Create Lab Account
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Creating Account...
+          </>
+        ) : (
+          <>
+            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+            Create Lab Account
+          </>
+        )}
       </Button>
     </form>
   );
@@ -654,219 +679,233 @@ const LabForm = ({
 const PhlebotomistForm = ({
   form,
   onSubmit,
+  isLoading,
 }: {
   form: any;
   onSubmit: (data: SignupFormValues) => void;
+  isLoading?: boolean;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-      <FormField
-        control={form.control}
-        name="fullName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" />
-              Full Name
-            </FormLabel>
-            <FormControl>
-              <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                Full Name
+              </FormLabel>
+              <FormControl>
+                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="email"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-primary" />
-              Email Address
-            </FormLabel>
-            <FormControl>
-              <Input
-                type="email"
-                placeholder="phlebotomist@example.com"
-                className="h-11"
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Email Address
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="phlebotomist@example.com"
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="phone"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-primary" />
-              Phone Number
-            </FormLabel>
-            <FormControl>
-              <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary" />
+                Phone Number
+              </FormLabel>
+              <FormControl>
+                <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="qualification"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-primary" />
-              Qualification
-            </FormLabel>
-            <FormControl>
-              <Input
-                placeholder="Certified Phlebotomist, Medical Lab Technician, etc."
-                className="h-11"
-                {...field}
-              />
-            </FormControl>
-            <FormDescription className="text-xs">
-              Enter your professional qualification or certification
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="qualification"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-primary" />
+                Qualification
+              </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Certified Phlebotomist, Medical Lab Technician, etc."
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription className="text-xs">
+                Enter your professional qualification
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="trafficLicenseCopy"
-        render={({ field: { onChange, value, ...field } }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" />
-              Traffic License Copy
-            </FormLabel>
-            <FormControl>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelectedFile(file);
-                        onChange(file);
-                      }
-                    }}
+        <FormField
+          control={form.control}
+          name="trafficLicenseCopy"
+          render={({ field: { onChange, value, ...field } }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Traffic License Copy
+              </FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,application/pdf"
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          onChange(file);
+                        }
+                      }}
+                      {...field}
+                    />
+                  </div>
+                  {selectedFile && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                      <FileText className="w-4 h-4" />
+                      <span className="flex-1 truncate">{selectedFile.name}</span>
+                      <span className="text-xs">
+                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription className="text-xs">
+                Upload a clear copy of your traffic license (Image or PDF, max 5MB)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Password */}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
                     {...field}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  </button>
                 </div>
-                {selectedFile && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
-                    <FileText className="w-4 h-4" />
-                    <span className="flex-1 truncate">{selectedFile.name}</span>
-                    <span className="text-xs">
-                      ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                )}
-              </div>
-            </FormControl>
-            <FormDescription className="text-xs">
-              Upload a clear copy of your traffic license (Image or PDF, max 5MB)
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              </FormControl>
+              <FormDescription className="text-xs">
+                At least 8 characters with an uppercase letter, number & special character
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {/* Password */}
-      <FormField
-        control={form.control}
-        name="password"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-              </div>
-            </FormControl>
-            <FormDescription className="text-xs">
-              At least 8 characters with an uppercase letter, number & special character
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Confirm Password */}
-      <FormField
-        control={form.control}
-        name="confirmPassword"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              Confirm Password
-            </FormLabel>
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="h-11 pr-10"
-                  {...field}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <Eye className="w-5 h-5" />
-                  ) : (
-                    <EyeOff className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        {/* Confirm Password */}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Confirm Password
+              </FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="h-11 pr-10"
+                    {...field}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    {showConfirmPassword ? (
+                      <Eye className="w-5 h-5" />
+                    ) : (
+                      <EyeOff className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <Button
         type="submit"
         size="lg"
+        disabled={isLoading}
         className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
       >
-        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-        Create Phlebotomist Account
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Creating Account...
+          </>
+        ) : (
+          <>
+            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+            Create Phlebotomist Account
+          </>
+        )}
       </Button>
     </form>
   );
@@ -1070,9 +1109,9 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
           </Button>
 
           <Form {...form}>
-            {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} />}
-            {role === "lab" && <LabForm form={form} onSubmit={onSubmit} />}
-            {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} />}
+            {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
+            {role === "lab" && <LabForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
+            {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
           </Form>
         </>
       ) : (

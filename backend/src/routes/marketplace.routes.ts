@@ -25,7 +25,7 @@ import {
     updateOrderStatus,
     processRefund,
     uploadProductImages,
-    handleJazzCashReturn,
+    handlePayFastITN,
 } from '../controllers/marketplace.controller';
 import { protect, restrictTo } from '../middleware/auth.middleware';
 
@@ -93,8 +93,8 @@ router.put('/admin/orders/:id/status', protect, restrictTo('admin'), updateOrder
 router.post('/admin/orders/:id/refund', protect, restrictTo('admin'), processRefund);
 
 // ============================================
-// PAYMENT RETURN / WEBHOOKS
+// PAYFAST WEBHOOKS
 // ============================================
-router.post('/jazzcash-return', handleJazzCashReturn);
+router.post('/itn', handlePayFastITN);
 
 export default router;

@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Squares from "@/components/home/Squares";
 import Footer from "@/components/shared/Footer";
 import CardNav from "@/components/home/CardNav";
-import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isNavExpanded, setIsNavExpanded] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -47,9 +48,12 @@ export default function Login() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true);
     setLoginError("");
 
     const result = await login(data.email, data.password);
+
+    setIsLoading(false);
 
     if (!result.success) {
       const errorMessage = result.message || "Invalid email or password. Please try again.";
@@ -215,9 +219,19 @@ export default function Login() {
                       type="submit"
                       size="lg"
                       className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
+                      disabled={isLoading}
                     >
-                      <LogIn className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                      Sign In
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                          Sign In
+                        </>
+                      )}
                     </Button>
                   </form>
                 </Form>

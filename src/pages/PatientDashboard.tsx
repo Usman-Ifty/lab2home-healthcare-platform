@@ -91,7 +91,7 @@ const PatientDashboard = () => {
 
       try {
         const token = getToken();
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bookings/patient/${user.id}`, {
+        const response = await fetch(`http://localhost:5000/api/bookings/patient/${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
