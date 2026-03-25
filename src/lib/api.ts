@@ -59,11 +59,11 @@ const apiRequest = async <T = any>(
 
 // Auth API functions
 export const authAPI = {
-  // Unified login - automatically detects patient, lab, or phlebotomist
-  login: async (email: string, password: string) => {
+  // Login - explicitly passes selected role
+  login: async (email: string, password: string, role: string) => {
     return apiRequest('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     });
   },
 
@@ -193,26 +193,26 @@ export const authAPI = {
   },
 
   // Forgot password - request OTP
-  forgotPassword: async (email: string) => {
+  forgotPassword: async (email: string, role: string) => {
     return apiRequest('/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, role }),
     });
   },
 
   // Verify reset OTP
-  verifyResetOTP: async (email: string, otp: string) => {
+  verifyResetOTP: async (email: string, otp: string, role: string) => {
     return apiRequest('/auth/verify-reset-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, otp }),
+      body: JSON.stringify({ email, otp, role }),
     });
   },
 
   // Reset password
-  resetPassword: async (email: string, otp: string, newPassword: string) => {
+  resetPassword: async (email: string, otp: string, newPassword: string, role: string) => {
     return apiRequest('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, newPassword }),
+      body: JSON.stringify({ email, otp, newPassword, role }),
     });
   },
 };

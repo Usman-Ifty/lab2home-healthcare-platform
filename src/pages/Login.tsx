@@ -62,6 +62,7 @@ const Blob = ({ className }: { className?: string }) => (
 );
 
 export default function Login() {
+  const [role, setRole] = useState<"patient" | "lab" | "phlebotomist" | "admin">("patient");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +89,7 @@ export default function Login() {
     setIsLoading(true);
     setLoginError("");
 
-    const result = await login(data.email, data.password);
+    const result = await login(data.email, data.password, role);
 
     setIsLoading(false);
 
@@ -226,6 +227,24 @@ export default function Login() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-5"
                 >
+                  {/* Role Selection */}
+                  <div className="flex gap-2 mb-6 p-1 bg-background/60 border border-border/60 rounded-lg animate-fade-in-up">
+                    {(['patient', 'phlebotomist', 'lab', 'admin'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRole(r)}
+                        className={`flex-1 capitalize text-sm py-2 rounded-md font-medium transition-all ${
+                          role === r 
+                            ? "bg-primary text-primary-foreground shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Email */}
                   <div className="animate-fade-in-up anim-delay-100">
                     <FormField

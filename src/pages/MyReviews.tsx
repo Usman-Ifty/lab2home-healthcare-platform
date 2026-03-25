@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import StarRating from '@/components/shared/StarRating';
 import * as feedbackService from '@/services/feedback.service';
 import FeedbackForm from '@/components/shared/FeedbackForm';
+import { API_BASE_URL } from '@/lib/api';
 
 interface PastTarget {
     type: 'lab' | 'phlebotomist';
@@ -82,7 +83,7 @@ const MyReviews = () => {
         if (!token || !user?.id) return;
         try {
             setLoadingTargets(true);
-            const response = await fetch(`http://localhost:5000/api/bookings/patient/${user.id}?status=completed`, {
+            const response = await fetch(`${API_BASE_URL}/bookings/patient/${user.id}?status=completed`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

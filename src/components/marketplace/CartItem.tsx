@@ -23,7 +23,7 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }: CartItemProps) => {
     const [quantity, setQuantity] = useState(item.quantity);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const productImg = item.product.images[0];
     const imageUrl = productImg
         ? (productImg.startsWith('data:') || productImg.startsWith('http') ? productImg : `${API_URL}${productImg}`)

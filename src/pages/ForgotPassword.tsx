@@ -63,6 +63,7 @@ type OTPFormValues = z.infer<typeof otpSchema>;
 type ResetFormValues = z.infer<typeof resetSchema>;
 
 export default function ForgotPassword() {
+    const [role, setRole] = useState<"patient" | "lab" | "phlebotomist" | "admin">("patient");
     const [currentStep, setCurrentStep] = useState<ForgotPasswordStep>("email");
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -96,7 +97,7 @@ export default function ForgotPassword() {
     const onEmailSubmit = async (data: EmailFormValues) => {
         setIsLoading(true);
         try {
-            const response = await authAPI.forgotPassword(data.email);
+            const response = await authAPI.forgotPassword(data.email, role);
 
             if (response.success) {
                 setEmail(data.email);
@@ -128,7 +129,7 @@ export default function ForgotPassword() {
     const onOTPSubmit = async (data: OTPFormValues) => {
         setIsLoading(true);
         try {
-            const response = await authAPI.verifyResetOTP(email, data.otp);
+            const response = await authAPI.verifyResetOTP(email, data.otp, role);
 
             if (response.success) {
                 setOtp(data.otp);
@@ -159,7 +160,7 @@ export default function ForgotPassword() {
     const onResetSubmit = async (data: ResetFormValues) => {
         setIsLoading(true);
         try {
-            const response = await authAPI.resetPassword(email, otp, data.password);
+            const response = await authAPI.resetPassword(email, otp, data.password, role);
 
             if (response.success) {
                 setCurrentStep("success");
@@ -196,7 +197,7 @@ export default function ForgotPassword() {
 
         setIsLoading(true);
         try {
-            const response = await authAPI.forgotPassword(email);
+            const response = await authAPI.forgotPassword(email, role);
 
             if (response.success) {
                 startResendCountdown();
@@ -322,6 +323,24 @@ export default function ForgotPassword() {
                                 {currentStep === "email" && (
                                     <Form {...emailForm}>
                                         <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-5">
+                                            {/* Role Selection */}
+                                            <div className="flex gap-2 mb-6 p-1 bg-background/60 border border-border/60 rounded-lg animate-fade-in-up">
+                                                {(['patient', 'phlebotomist', 'lab', 'admin'] as const).map((r) => (
+                                                    <button
+                                                        key={r}
+                                                        type="button"
+                                                        onClick={() => setRole(r)}
+                                                        className={`flex-1 capitalize text-sm py-2 rounded-md font-medium transition-all ${
+                                                            role === r 
+                                                                ? "bg-primary text-primary-foreground shadow-sm" 
+                                                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                                        }`}
+                                                    >
+                                                        {r}
+                                                    </button>
+                                                ))}
+                                            </div>
+
                                             <FormField
                                                 control={emailForm.control}
                                                 name="email"

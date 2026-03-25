@@ -32,7 +32,7 @@ const ProductDetails = () => {
     const [selectedImage, setSelectedImage] = useState<string>('');
     const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
     useEffect(() => {
         if (id) {

@@ -713,239 +713,121 @@ export const resendOTP = async (req: Request, res: Response): Promise<void> => {
 // ============================================
 export const unifiedLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password || !role) {
       res.status(400).json({
         success: false,
-        message: 'Email and password are required',
+        message: 'Email, password, and role are required',
       });
       return;
     }
 
-    // Try to find in Patient collection first
-    let patient = await Patient.findOne({ email: email.toLowerCase() }).select('+password');
+    if (role === 'patient') {
+      const patient = await Patient.findOne({ email: email.toLowerCase() }).select('+password');
+      if (!patient) return handleInvalidCredentials(res);
 
-    if (patient) {
-      // Found as patient
       if (!patient.isVerified) {
-        res.status(403).json({
-          success: false,
-          message: 'Please verify your email first',
-          needsVerification: true,
-        });
+        res.status(403).json({ success: false, message: 'Please verify your email first', needsVerification: true });
         return;
       }
-
       if (!patient.isActive) {
-        res.status(403).json({
-          success: false,
-          message: 'Your account has been deactivated by the admin team. Please contact support.',
-        });
+        res.status(403).json({ success: false, message: 'Your account has been deactivated by the admin team.' });
         return;
       }
-
-      // Verify password
       const isPasswordCorrect = await patient.comparePassword(password);
-      if (!isPasswordCorrect) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid email or password',
-        });
-        return;
-      }
+      if (!isPasswordCorrect) return handleInvalidCredentials(res);
 
-      // Generate token for patient
-      const token = generateToken({
-        id: patient._id.toString(),
-        email: patient.email,
-        userType: 'patient',
-      });
-
+      const token = generateToken({ id: patient._id.toString(), email: patient.email, userType: 'patient' });
       res.status(200).json({
-        success: true,
-        message: 'Login successful',
+        success: true, message: 'Login successful',
         data: {
           token,
           user: {
-            id: patient._id,
-            fullName: patient.fullName,
-            email: patient.email,
-            phone: patient.phone,
-            address: patient.address,
-            userType: 'patient',
+            id: patient._id, fullName: patient.fullName, email: patient.email,
+            phone: patient.phone, address: patient.address, userType: 'patient',
           },
         },
       });
       return;
-    }
+    } else if (role === 'lab') {
+      const lab = await Lab.findOne({ email: email.toLowerCase() }).select('+password');
+      if (!lab) return handleInvalidCredentials(res);
 
-    // Not found in Patient, try Lab collection
-    let lab = await Lab.findOne({ email: email.toLowerCase() }).select('+password');
-
-    if (lab) {
-      // Found as lab
       if (!lab.isVerified) {
-        res.status(403).json({
-          success: false,
-          message: 'Your lab registration is pending admin approval. You will be notified once approved.',
-          needsApproval: true,
-        });
+        res.status(403).json({ success: false, message: 'Your lab registration is pending admin approval.', needsApproval: true });
         return;
       }
-
       if (!lab.isActive) {
-        res.status(403).json({
-          success: false,
-          message: 'Your account has been deactivated by the admin team. Please contact support.',
-        });
+        res.status(403).json({ success: false, message: 'Your account has been deactivated by the admin team.' });
         return;
       }
-
-      // Verify password
       const isPasswordCorrect = await lab.comparePassword(password);
-      if (!isPasswordCorrect) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid email or password',
-        });
-        return;
-      }
+      if (!isPasswordCorrect) return handleInvalidCredentials(res);
 
-      // Generate token for lab
-      const token = generateToken({
-        id: lab._id.toString(),
-        email: lab.email,
-        userType: 'lab',
-      });
-
+      const token = generateToken({ id: lab._id.toString(), email: lab.email, userType: 'lab' });
       res.status(200).json({
-        success: true,
-        message: 'Login successful',
+        success: true, message: 'Login successful',
         data: {
           token,
           user: {
-            id: lab._id,
-            fullName: lab.fullName,
-            email: lab.email,
-            phone: lab.phone,
-            labName: lab.labName,
-            labAddress: lab.labAddress,
-            userType: 'lab',
+            id: lab._id, fullName: lab.fullName, email: lab.email,
+            phone: lab.phone, labName: lab.labName, labAddress: lab.labAddress, userType: 'lab',
           },
         },
       });
       return;
-    }
+    } else if (role === 'phlebotomist') {
+      const phlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() }).select('+password');
+      if (!phlebotomist) return handleInvalidCredentials(res);
 
-    // Not found in Patient or Lab, try Phlebotomist collection
-    let phlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() }).select('+password');
-
-    if (phlebotomist) {
-      // Found as phlebotomist
       if (!phlebotomist.isVerified) {
-        res.status(403).json({
-          success: false,
-          message: 'Your phlebotomist registration is pending admin approval. You will be notified once approved.',
-          needsApproval: true,
-        });
+        res.status(403).json({ success: false, message: 'Your registration is pending admin approval.', needsApproval: true });
         return;
       }
-
       if (!phlebotomist.isActive) {
-        res.status(403).json({
-          success: false,
-          message: 'Your account has been deactivated by the admin team. Please contact support.',
-        });
+        res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
         return;
       }
-
-      // Verify password
       const isPasswordCorrect = await phlebotomist.comparePassword(password);
-      if (!isPasswordCorrect) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid email or password',
-        });
-        return;
-      }
+      if (!isPasswordCorrect) return handleInvalidCredentials(res);
 
-      // Generate token for phlebotomist
-      const token = generateToken({
-        id: phlebotomist._id.toString(),
-        email: phlebotomist.email,
-        userType: 'phlebotomist',
-      });
-
+      const token = generateToken({ id: phlebotomist._id.toString(), email: phlebotomist.email, userType: 'phlebotomist' });
       res.status(200).json({
-        success: true,
-        message: 'Login successful',
+        success: true, message: 'Login successful',
         data: {
           token,
           user: {
-            id: phlebotomist._id,
-            fullName: phlebotomist.fullName,
-            email: phlebotomist.email,
-            phone: phlebotomist.phone,
-            qualification: phlebotomist.qualification,
-            userType: 'phlebotomist',
+            id: phlebotomist._id, fullName: phlebotomist.fullName, email: phlebotomist.email,
+            phone: phlebotomist.phone, qualification: phlebotomist.qualification, userType: 'phlebotomist',
           },
         },
       });
       return;
-    }
+    } else if (role === 'admin') {
+      const admin = await Admin.findOne({ email: email.toLowerCase() }).select('+password');
+      if (!admin) return handleInvalidCredentials(res);
 
-    // Not found in Patient, Lab, or Phlebotomist, try Admin collection
-    let admin = await Admin.findOne({ email: email.toLowerCase() }).select('+password');
-
-    if (admin) {
-      // Found as admin
       if (!admin.isActive) {
-        res.status(403).json({
-          success: false,
-          message: 'Account is deactivated. Please contact support.',
-        });
+        res.status(403).json({ success: false, message: 'Account is deactivated.' });
         return;
       }
-
-      // Verify password
       const isPasswordCorrect = await admin.comparePassword(password);
-      if (!isPasswordCorrect) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid email or password',
-        });
-        return;
-      }
+      if (!isPasswordCorrect) return handleInvalidCredentials(res);
 
-      // Generate token for admin
-      const token = generateToken({
-        id: admin._id.toString(),
-        email: admin.email,
-        userType: 'admin',
-      });
-
+      const token = generateToken({ id: admin._id.toString(), email: admin.email, userType: 'admin' });
       res.status(200).json({
-        success: true,
-        message: 'Login successful',
+        success: true, message: 'Login successful',
         data: {
           token,
-          user: {
-            id: admin._id,
-            email: admin.email,
-            userType: 'admin',
-          },
+          user: { id: admin._id, email: admin.email, userType: 'admin' },
         },
       });
       return;
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid role provided' });
+      return;
     }
-
-    // Not found in any collection
-    res.status(401).json({
-      success: false,
-      message: 'Invalid email or password',
-    });
-
   } catch (error: any) {
     console.error('Unified login error:', error);
     res.status(500).json({
@@ -954,6 +836,13 @@ export const unifiedLogin = async (req: Request, res: Response): Promise<void> =
       error: error.message,
     });
   }
+};
+
+const handleInvalidCredentials = (res: Response) => {
+  res.status(401).json({
+    success: false,
+    message: 'Invalid email or password',
+  });
 };
 
 // ============================================
@@ -1250,47 +1139,32 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 // ============================================
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body;
+    const { email, role } = req.body;
 
-    if (!email) {
+    if (!email || !role) {
       res.status(400).json({
         success: false,
-        message: 'Email is required',
+        message: 'Email and role are required',
       });
       return;
     }
 
-    // Search for user across all collections
     let user: any = null;
     let userName = '';
-    let userType = '';
+    let userType = role;
 
-    // Check Patient
-    const patient = await Patient.findOne({ email: email.toLowerCase() });
-    if (patient) {
-      user = patient;
-      userName = patient.fullName;
-      userType = 'patient';
-    }
-
-    // Check Lab if not found in Patient
-    if (!user) {
-      const lab = await Lab.findOne({ email: email.toLowerCase() });
-      if (lab) {
-        user = lab;
-        userName = lab.fullName;
-        userType = 'lab';
-      }
-    }
-
-    // Check Phlebotomist if not found in Lab
-    if (!user) {
-      const phlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() });
-      if (phlebotomist) {
-        user = phlebotomist;
-        userName = phlebotomist.fullName;
-        userType = 'phlebotomist';
-      }
+    if (role === 'patient') {
+      user = await Patient.findOne({ email: email.toLowerCase() });
+      if (user) userName = user.fullName;
+    } else if (role === 'lab') {
+      user = await Lab.findOne({ email: email.toLowerCase() });
+      if (user) userName = user.fullName;
+    } else if (role === 'phlebotomist') {
+      user = await Phlebotomist.findOne({ email: email.toLowerCase() });
+      if (user) userName = user.fullName;
+    } else if (role === 'admin') {
+      user = await Admin.findOne({ email: email.toLowerCase() });
+      if (user) userName = 'Admin';
     }
 
     // If user not found, return error message
@@ -1311,8 +1185,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Delete any existing password reset OTPs for this email
-    await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'reset-password' });
+    await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'reset-password', userType: role });
 
     // Generate new OTP
     const otp = generateOTP();
@@ -1320,6 +1193,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       email: email.toLowerCase(),
       otp,
       purpose: 'reset-password',
+      userType: role,
     });
 
     // Send OTP email
@@ -1350,21 +1224,21 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 // ============================================
 export const verifyResetOTP = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, role } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp || !role) {
       res.status(400).json({
         success: false,
-        message: 'Email and OTP are required',
+        message: 'Email, OTP, and role are required',
       });
       return;
     }
 
-    // Find OTP record
     const otpRecord = await OTP.findOne({
       email: email.toLowerCase(),
       otp,
       purpose: 'reset-password',
+      userType: role,
       expiresAt: { $gt: new Date() },
     });
 
@@ -1400,21 +1274,21 @@ export const verifyResetOTP = async (req: Request, res: Response): Promise<void>
 // ============================================
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp, newPassword, role } = req.body;
 
-    if (!email || !otp || !newPassword) {
+    if (!email || !otp || !newPassword || !role) {
       res.status(400).json({
         success: false,
-        message: 'Email, OTP, and new password are required',
+        message: 'Email, OTP, new password, and role are required',
       });
       return;
     }
 
-    // Verify OTP one more time
     const otpRecord = await OTP.findOne({
       email: email.toLowerCase(),
       otp,
       purpose: 'reset-password',
+      userType: role,
       expiresAt: { $gt: new Date() },
     });
 
@@ -1426,39 +1300,22 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Find user and update password
     let user: any = null;
-    let userType = '';
+    let userType = role;
 
-    // Check Patient
-    const patient = await Patient.findOne({ email: email.toLowerCase() });
-    if (patient) {
-      patient.password = newPassword; // Will be hashed by pre-save hook
-      await patient.save();
-      user = patient;
-      userType = 'patient';
+    if (role === 'patient') {
+      user = await Patient.findOne({ email: email.toLowerCase() });
+    } else if (role === 'lab') {
+      user = await Lab.findOne({ email: email.toLowerCase() });
+    } else if (role === 'phlebotomist') {
+      user = await Phlebotomist.findOne({ email: email.toLowerCase() });
+    } else if (role === 'admin') {
+      user = await Admin.findOne({ email: email.toLowerCase() });
     }
 
-    // Check Lab if not found in Patient
-    if (!user) {
-      const lab = await Lab.findOne({ email: email.toLowerCase() });
-      if (lab) {
-        lab.password = newPassword; // Will be hashed by pre-save hook
-        await lab.save();
-        user = lab;
-        userType = 'lab';
-      }
-    }
-
-    // Check Phlebotomist if not found in Lab
-    if (!user) {
-      const phlebotomist = await Phlebotomist.findOne({ email: email.toLowerCase() });
-      if (phlebotomist) {
-        phlebotomist.password = newPassword; // Will be hashed by pre-save hook
-        await phlebotomist.save();
-        user = phlebotomist;
-        userType = 'phlebotomist';
-      }
+    if (user) {
+      user.password = newPassword; 
+      await user.save();
     }
 
     if (!user) {
