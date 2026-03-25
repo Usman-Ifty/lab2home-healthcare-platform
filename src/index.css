@@ -150,3 +150,46 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Glassmorphism card used on auth pages */
+  .glass-card {
+    @apply bg-white/70 dark:bg-card/70 backdrop-blur-xl border border-white/40 dark:border-white/10;
+    box-shadow: 0 8px 32px rgba(0, 113, 188, 0.18), 0 0 0 1px rgba(0, 113, 188, 0.08);
+  }
+
+  /* Animated gradient panel (left/right on auth pages) */
+  .auth-gradient-panel {
+    background: var(--gradient-hero);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .auth-gradient-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Staggered animation delays for form fields */
+  .anim-delay-100 { animation-delay: 100ms; }
+  .anim-delay-150 { animation-delay: 150ms; }
+  .anim-delay-200 { animation-delay: 200ms; }
+  .anim-delay-250 { animation-delay: 250ms; }
+  .anim-delay-300 { animation-delay: 300ms; }
+  .anim-delay-350 { animation-delay: 350ms; }
+  .anim-delay-400 { animation-delay: 400ms; }
+  .anim-delay-500 { animation-delay: 500ms; }
+
+  /* Input focus glow */
+  .auth-input {
+    @apply transition-all duration-300;
+  }
+  .auth-input:focus-within {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  }
+}

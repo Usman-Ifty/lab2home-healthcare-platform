@@ -19,7 +19,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Squares from "@/components/home/Squares";
 import Footer from "@/components/shared/Footer";
-import CardNav from "@/components/home/CardNav";
+import Navbar from "@/components/shared/Navbar";
 import { KeyRound, Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
 import logo from "/logo.svg";
 
@@ -67,7 +67,6 @@ export default function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [isNavExpanded, setIsNavExpanded] = useState(false);
     const [resendCountdown, setResendCountdown] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -271,20 +270,12 @@ export default function ForgotPassword() {
     return (
         <div className="min-h-screen flex flex-col">
             <section className="relative flex-1 flex items-center justify-center overflow-hidden py-12">
-                <CardNav
-                    logo={logo}
-                    logoAlt="Lab2Home Logo"
-                    items={navItems}
-                    baseColor="#fff"
-                    menuColor="hsl(200 85% 45%)"
-                    onExpandChange={setIsNavExpanded}
-                />
+                <Navbar />
                 <Squares speed={0.5} squareSize={40} direction="diagonal" />
 
                 {/* Animated Title */}
                 <div
-                    className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${isNavExpanded ? 'opacity-0 scale-95 -translate-y-8 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'
-                        }`}
+                    className="absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 opacity-100 scale-100 translate-y-0"
                 >
                     <div className="animate-fade-in-up">
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight">

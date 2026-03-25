@@ -17,10 +17,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Squares from "@/components/home/Squares";
+
 import Footer from "@/components/shared/Footer";
-import CardNav from "@/components/home/CardNav";
 import {
   UserPlus,
   Mail,
@@ -38,16 +36,73 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  HeartPulse,
+  ShieldCheck,
+  Activity,
+  CheckCircle2,
 } from "lucide-react";
 import logo from "/logo.svg";
-import { publicNavItems } from "@/config/public-nav";
 
-// Role types
+// ── Types ─────────────────────────────────────────────────────────────────────
 type UserRole = "patient" | "lab" | "phlebotomist";
 
-// -------------------- ZOD SCHEMAS --------------------
+// ── Role config (panel colours + icons + text) ────────────────────────────────
+const roleConfig: Record<
+  UserRole,
+  {
+    gradient: string;
+    blobColor1: string;
+    blobColor2: string;
+    panelTitle: string;
+    panelSub: string;
+    benefits: string[];
+    Icon: React.ElementType;
+    accentColor: string;
+  }
+> = {
+  patient: {
+    gradient: "linear-gradient(135deg, hsl(200 85% 45%) 0%, hsl(180 65% 50%) 100%)",
+    blobColor1: "bg-blue-400",
+    blobColor2: "bg-cyan-400",
+    panelTitle: "Your Health, Delivered",
+    panelSub:
+      "Book lab tests from home, receive certified reports, and track your wellness journey.",
+    benefits: ["Book tests in minutes", "Home sample collection", "Digital reports", "AI health insights"],
+    Icon: HeartPulse,
+    accentColor: "text-cyan-200",
+  },
+  lab: {
+    gradient: "linear-gradient(135deg, hsl(180 65% 40%) 0%, hsl(150 70% 45%) 100%)",
+    blobColor1: "bg-teal-400",
+    blobColor2: "bg-green-400",
+    panelTitle: "Grow Your Lab Business",
+    panelSub:
+      "Reach thousands of patients, manage appointments, and digitise your diagnostic lab.",
+    benefits: ["Expand patient reach", "Manage test inventory", "Digital reporting", "Revenue analytics"],
+    Icon: FlaskConical,
+    accentColor: "text-teal-200",
+  },
+  phlebotomist: {
+    gradient: "linear-gradient(135deg, hsl(220 80% 50%) 0%, hsl(200 85% 45%) 60%, hsl(270 60% 55%) 100%)",
+    blobColor1: "bg-blue-400",
+    blobColor2: "bg-purple-400",
+    panelTitle: "Earn on Your Schedule",
+    panelSub:
+      "Connect with patients in your area, manage your routes, and grow your phlebotomy practice.",
+    benefits: ["Flexible working hours", "Route optimisation", "Instant job alerts", "Verified credentials"],
+    Icon: Bike,
+    accentColor: "text-blue-200",
+  },
+};
 
-// Base schema for all roles
+// Default panel when no role is selected yet
+const defaultPanel = {
+  gradient: "linear-gradient(135deg, hsl(200 85% 45%) 0%, hsl(180 65% 50%) 50%, hsl(150 70% 45%) 100%)",
+  blobColor1: "bg-blue-300",
+  blobColor2: "bg-teal-300",
+};
+
+// ── Zod Schemas ───────────────────────────────────────────────────────────────
 const baseSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
@@ -71,7 +126,6 @@ const baseSchema = z.object({
   confirmPassword: z.string(),
 });
 
-// Patient-specific schema
 const patientSchema = baseSchema.extend({
   role: z.literal("patient"),
   dateOfBirth: z
@@ -80,28 +134,23 @@ const patientSchema = baseSchema.extend({
     .refine((date) => {
       const selectedDate = new Date(date);
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+      today.setHours(0, 0, 0, 0);
       return selectedDate <= today;
     }, "Date of birth cannot be in the future"),
   age: z.number().optional(),
   address: z.string().min(5, "Please enter your address"),
 });
 
-// Lab-specific schema
 const labSchema = baseSchema.extend({
   role: z.literal("lab"),
   labName: z.string().min(2, "Please enter lab name"),
   licenseCopy: z
     .instanceof(File, { message: "Please upload your lab license copy" })
     .refine((file) => file.size <= 5 * 1024 * 1024, "File size must be less than 5MB")
-    .refine(
-      (file) => file.type === "application/pdf",
-      "File must be a PDF document"
-    ),
+    .refine((file) => file.type === "application/pdf", "File must be a PDF document"),
   labAddress: z.string().min(5, "Please enter lab address"),
 });
 
-// Phlebotomist-specific schema
 const phlebotomistSchema = baseSchema.extend({
   role: z.literal("phlebotomist"),
   qualification: z.string().min(2, "Please enter your qualification"),
@@ -115,7 +164,6 @@ const phlebotomistSchema = baseSchema.extend({
     ),
 });
 
-// Combined schema with refinement
 const signupSchema = z
   .discriminatedUnion("role", [patientSchema, labSchema, phlebotomistSchema])
   .refine((data) => data.password === data.confirmPassword, {
@@ -125,66 +173,116 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-// -------------------- ROLE SELECTION --------------------
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const Blob = ({ className }: { className?: string }) => (
+  <div className={`absolute rounded-full blur-3xl opacity-25 animate-blob ${className}`} />
+);
 
-const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => void }) => {
-  const roles = [
+const FloatingIcon = ({
+  icon: Icon,
+  className,
+}: {
+  icon: React.ElementType;
+  className?: string;
+}) => (
+  <div
+    className={`absolute flex items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg ${className}`}
+  >
+    <Icon className="text-white/85" />
+  </div>
+);
+
+// ── Password field with show/hide ─────────────────────────────────────────────
+const PasswordInput = ({
+  field,
+  placeholder = "••••••••",
+  className = "",
+}: {
+  field: any;
+  placeholder?: string;
+  className?: string;
+}) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="auth-input relative rounded-lg">
+      <Input
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        className={`h-11 pr-10 bg-background/60 border-border/60 focus:border-primary/50 transition-all ${className}`}
+        {...field}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((p) => !p)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+};
+
+// ── Role Selection ─────────────────────────────────────────────────────────────
+const RoleSelection = ({
+  onSelectRole,
+}: {
+  onSelectRole: (role: UserRole) => void;
+}) => {
+  const roles: { id: UserRole; title: string; description: string; icon: React.ElementType; color: string; bg: string }[] = [
     {
-      id: "patient" as UserRole,
+      id: "patient",
       title: "Patient",
-      description: "Book tests, view reports, and manage your health records",
+      description: "Book tests, view reports & manage your health",
       icon: User,
       color: "text-primary",
-      bgColor: "bg-primary/10",
+      bg: "bg-primary/10 group-hover:bg-primary/20",
     },
     {
-      id: "lab" as UserRole,
+      id: "lab",
       title: "Lab",
-      description: "Manage sample collection, process tests, and update results",
+      description: "Manage tests, appointments & digital reports",
       icon: FlaskConical,
       color: "text-health",
-      bgColor: "bg-health/10",
+      bg: "bg-health/10 group-hover:bg-health/20",
     },
     {
-      id: "phlebotomist" as UserRole,
+      id: "phlebotomist",
       title: "Phlebotomist",
-      description: "Collect samples at patient locations and manage collections",
+      description: "Collect samples at patient locations",
       icon: Bike,
       color: "text-secondary",
-      bgColor: "bg-secondary/10",
+      bg: "bg-secondary/10 group-hover:bg-secondary/20",
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h3 className="text-xl font-semibold mb-2">Select Your Role</h3>
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold mb-1">Choose Your Role</h3>
         <p className="text-sm text-muted-foreground">
-          Choose the account type that best describes you
+          Select the account type that best describes you
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {roles.map((role) => {
+      <div className="grid gap-3">
+        {roles.map((role, i) => {
           const Icon = role.icon;
           return (
-            <Card
+            <button
               key={role.id}
-              className="cursor-pointer hover:border-primary hover:shadow-medium transition-all duration-300"
               onClick={() => onSelectRole(role.id)}
+              className={`group w-full flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-medium bg-background/60 hover:bg-background transition-all duration-300 text-left anim-delay-${(i + 1) * 100} animate-fade-in-up`}
+              style={{ animationDelay: `${i * 80}ms` }}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className={`${role.bgColor} p-3 rounded-lg`}>
-                    <Icon className={`w-6 h-6 ${role.color}`} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">{role.title}</h4>
-                    <p className="text-sm text-muted-foreground">{role.description}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <div className={`${role.bg} p-3 rounded-xl transition-colors duration-300`}>
+                <Icon className={`w-6 h-6 ${role.color}`} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-foreground">{role.title}</div>
+                <div className="text-sm text-muted-foreground">{role.description}</div>
+              </div>
+              <div className="text-muted-foreground group-hover:text-primary transition-colors">›</div>
+            </button>
           );
         })}
       </div>
@@ -192,8 +290,7 @@ const RoleSelection = ({ onSelectRole }: { onSelectRole: (role: UserRole) => voi
   );
 };
 
-// -------------------- PATIENT FORM --------------------
-
+// ── Patient Form ───────────────────────────────────────────────────────────────
 const PatientForm = ({
   form,
   onSubmit,
@@ -202,106 +299,93 @@ const PatientForm = ({
   form: any;
   onSubmit: (data: SignupFormValues) => void;
   isLoading?: boolean;
-}) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+}) => (
+  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="animate-fade-in-up" style={{ animationDelay: "60ms" }}>
         <FormField
           control={form.control}
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                Full Name
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
+                <Input placeholder="Muhammad Ahmad" className="h-11 bg-background/60" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                Email Address
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" />Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="Ahmad@example.com" className="h-11" {...field} />
+                <Input type="email" placeholder="ahmad@example.com" className="h-11 bg-background/60" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="animate-fade-in-up" style={{ animationDelay: "140ms" }}>
         <FormField
           control={form.control}
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-primary" />
-                Phone Number
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />Phone</FormLabel>
               <FormControl>
-                <Input type="tel" placeholder="03XXXXXXXXX" className="h-11" {...field} />
+                <Input type="tel" placeholder="03XXXXXXXXX" className="h-11 bg-background/60" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="animate-fade-in-up" style={{ animationDelay: "180ms" }}>
         <FormField
           control={form.control}
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                Address
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />Address</FormLabel>
               <FormControl>
-                <Input placeholder="Your complete address" className="h-11" {...field} />
+                <Input placeholder="Your complete address" className="h-11 bg-background/60" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="animate-fade-in-up" style={{ animationDelay: "220ms" }}>
         <FormField
           control={form.control}
           name="dateOfBirth"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
-                Date of Birth
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" />Date of Birth</FormLabel>
               <FormControl>
                 <Input
                   type="date"
-                  className="h-11"
+                  className="h-11 bg-background/60"
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
-                    // Calculate age when date changes
                     if (e.target.value) {
                       const birthDate = new Date(e.target.value);
                       const today = new Date();
                       let age = today.getFullYear() - birthDate.getFullYear();
-                      const monthDiff = today.getMonth() - birthDate.getMonth();
-                      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                        age--;
-                      }
+                      const m = today.getMonth() - birthDate.getMonth();
+                      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
                       form.setValue("age", age >= 0 ? age : 0);
                     } else {
                       form.setValue("age", undefined);
@@ -313,96 +397,17 @@ const PatientForm = ({
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="animate-fade-in-up" style={{ animationDelay: "260ms" }}>
         <FormField
           control={form.control}
           name="age"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                Age
-              </FormLabel>
+              <FormLabel className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />Age</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  placeholder="Auto-calculated"
-                  className="h-11 bg-muted"
-                  readOnly
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Password */}
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                  </button>
-                </div>
-              </FormControl>
-              <FormDescription className="text-xs">
-                At least 8 characters with an uppercase letter, number & special character
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Confirm Password */}
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Confirm Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showConfirmPassword ? (
-                      <Eye className="w-5 h-5" />
-                    ) : (
-                      <EyeOff className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
+                <Input type="number" placeholder="Auto-calculated" className="h-11 bg-muted" readOnly {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -410,30 +415,49 @@ const PatientForm = ({
         />
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={isLoading}
-        className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
-      >
+      <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
+              <FormDescription className="text-xs">8+ chars, uppercase, number & special char</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="animate-fade-in-up" style={{ animationDelay: "340ms" }}>
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Confirm Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+
+    <div className="animate-fade-in-up" style={{ animationDelay: "380ms" }}>
+      <Button type="submit" size="lg" disabled={isLoading} className="w-full py-6 shadow-medium hover:shadow-strong transition-all duration-300 group">
         {isLoading ? (
-          <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Creating Account...
-          </>
+          <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Creating Account...</>
         ) : (
-          <>
-            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            Create Patient Account
-          </>
+          <><UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />Create Patient Account</>
         )}
       </Button>
-    </form>
-  );
-};
+    </div>
+  </form>
+);
 
-// -------------------- LAB FORM --------------------
-
+// ── Lab Form ───────────────────────────────────────────────────────────────────
 const LabForm = ({
   form,
   onSubmit,
@@ -443,239 +467,125 @@ const LabForm = ({
   onSubmit: (data: SignupFormValues) => void;
   isLoading?: boolean;
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="fullName"
-          render={({ field }) => (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="animate-fade-in-up" style={{ animationDelay: "60ms" }}>
+          <FormField control={form.control} name="fullName" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                Contact Person Name
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />Contact Person</FormLabel>
+              <FormControl><Input placeholder="Muhammad Ahmad" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                Email Address
-              </FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="lab@example.com" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" />Email</FormLabel>
+              <FormControl><Input type="email" placeholder="lab@example.com" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "140ms" }}>
+          <FormField control={form.control} name="phone" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-primary" />
-                Phone Number
-              </FormLabel>
-              <FormControl>
-                <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />Phone</FormLabel>
+              <FormControl><Input type="tel" placeholder="03XXXXXXXXX" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="labName"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "180ms" }}>
+          <FormField control={form.control} name="labName" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-primary" />
-                Lab Name
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="ABC Diagnostic Lab" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Building2 className="w-4 h-4 text-primary" />Lab Name</FormLabel>
+              <FormControl><Input placeholder="ABC Diagnostic Lab" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="licenseCopy"
-          render={({ field: { onChange, value, ...field } }) => (
-            <FormItem className="md:col-span-2">
-              <FormLabel className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Lab License Copy
-              </FormLabel>
+        <div className="md:col-span-2 animate-fade-in-up" style={{ animationDelay: "220ms" }}>
+          <FormField control={form.control} name="licenseCopy" render={({ field: { onChange, value, ...field } }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Lab License (PDF)</FormLabel>
               <FormControl>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setSelectedFile(file);
-                          onChange(file);
-                        }
-                      }}
-                      {...field}
-                    />
-                  </div>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="flex h-11 w-full rounded-md border border-input bg-background/60 px-3 py-2 text-sm cursor-pointer file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) { setSelectedFile(f); onChange(f); } }}
+                    {...field}
+                  />
                   {selectedFile && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
                       <FileText className="w-4 h-4" />
                       <span className="flex-1 truncate">{selectedFile.name}</span>
-                      <span className="text-xs">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
+                      <span className="text-xs">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                   )}
                 </div>
               </FormControl>
-              <FormDescription className="text-xs">
-                Upload a clear copy of your lab license (PDF only, max 5MB)
-              </FormDescription>
+              <FormDescription className="text-xs">PDF only, max 5MB</FormDescription>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="labAddress"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FormLabel className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                Lab Address
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="Lab's complete address" className="h-11" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Password */}
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
+        <div className="md:col-span-2 animate-fade-in-up" style={{ animationDelay: "260ms" }}>
+          <FormField control={form.control} name="labAddress" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                  </button>
-                </div>
-              </FormControl>
-              <FormDescription className="text-xs">
-                At least 8 characters with an uppercase letter, number & special character
-              </FormDescription>
+              <FormLabel className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />Lab Address</FormLabel>
+              <FormControl><Input placeholder="Lab's complete address" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        {/* Confirm Password */}
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+          <FormField control={form.control} name="password" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Confirm Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showConfirmPassword ? (
-                      <Eye className="w-5 h-5" />
-                    ) : (
-                      <EyeOff className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
+              <FormDescription className="text-xs">8+ chars, uppercase, number & special char</FormDescription>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
+
+        <div className="animate-fade-in-up" style={{ animationDelay: "340ms" }}>
+          <FormField control={form.control} name="confirmPassword" render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Confirm Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </div>
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={isLoading}
-        className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Creating Account...
-          </>
-        ) : (
-          <>
-            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            Create Lab Account
-          </>
-        )}
-      </Button>
+      <div className="animate-fade-in-up" style={{ animationDelay: "380ms" }}>
+        <Button type="submit" size="lg" disabled={isLoading} className="w-full py-6 shadow-medium hover:shadow-strong transition-all duration-300 group">
+          {isLoading ? (
+            <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Creating Account...</>
+          ) : (
+            <><UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />Create Lab Account</>
+          )}
+        </Button>
+      </div>
     </form>
   );
 };
 
-// -------------------- PHLEBOTOMIST FORM --------------------
-
+// ── Phlebotomist Form ─────────────────────────────────────────────────────────
 const PhlebotomistForm = ({
   form,
   onSubmit,
@@ -686,234 +596,122 @@ const PhlebotomistForm = ({
   isLoading?: boolean;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField
-          control={form.control}
-          name="fullName"
-          render={({ field }) => (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="animate-fade-in-up" style={{ animationDelay: "60ms" }}>
+          <FormField control={form.control} name="fullName" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                Full Name
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="Muhammad Ahmad" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />Full Name</FormLabel>
+              <FormControl><Input placeholder="Muhammad Ahmad" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                Email Address
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="phlebotomist@example.com"
-                  className="h-11"
-                  {...field}
-                />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" />Email</FormLabel>
+              <FormControl><Input type="email" placeholder="phlebotomist@example.com" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "140ms" }}>
+          <FormField control={form.control} name="phone" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-primary" />
-                Phone Number
-              </FormLabel>
-              <FormControl>
-                <Input type="tel" placeholder="03XXXXXXXXX or +923XXXXXXXXX" className="h-11" {...field} />
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />Phone</FormLabel>
+              <FormControl><Input type="tel" placeholder="03XXXXXXXXX" className="h-11 bg-background/60" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="qualification"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "180ms" }}>
+          <FormField control={form.control} name="qualification" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-primary" />
-                Qualification
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Certified Phlebotomist, Medical Lab Technician, etc."
-                  className="h-11"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription className="text-xs">
-                Enter your professional qualification
-              </FormDescription>
+              <FormLabel className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-primary" />Qualification</FormLabel>
+              <FormControl><Input placeholder="Certified Phlebotomist, MLT, etc." className="h-11 bg-background/60" {...field} /></FormControl>
+              <FormDescription className="text-xs">Enter your professional qualification</FormDescription>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="trafficLicenseCopy"
-          render={({ field: { onChange, value, ...field } }) => (
-            <FormItem className="md:col-span-2">
-              <FormLabel className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Traffic License Copy
-              </FormLabel>
+        <div className="md:col-span-2 animate-fade-in-up" style={{ animationDelay: "220ms" }}>
+          <FormField control={form.control} name="trafficLicenseCopy" render={({ field: { onChange, value, ...field } }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Traffic License</FormLabel>
               <FormControl>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,application/pdf"
-                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setSelectedFile(file);
-                          onChange(file);
-                        }
-                      }}
-                      {...field}
-                    />
-                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,application/pdf"
+                    className="flex h-11 w-full rounded-md border border-input bg-background/60 px-3 py-2 text-sm cursor-pointer file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) { setSelectedFile(f); onChange(f); } }}
+                    {...field}
+                  />
                   {selectedFile && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted rounded-md">
                       <FileText className="w-4 h-4" />
                       <span className="flex-1 truncate">{selectedFile.name}</span>
-                      <span className="text-xs">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
+                      <span className="text-xs">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                   )}
                 </div>
               </FormControl>
-              <FormDescription className="text-xs">
-                Upload a clear copy of your traffic license (Image or PDF, max 5MB)
-              </FormDescription>
+              <FormDescription className="text-xs">Image (JPEG, PNG) or PDF, max 5MB</FormDescription>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        {/* Password */}
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "260ms" }}>
+          <FormField control={form.control} name="password" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                  </button>
-                </div>
-              </FormControl>
-              <FormDescription className="text-xs">
-                At least 8 characters with an uppercase letter, number & special character
-              </FormDescription>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
+              <FormDescription className="text-xs">8+ chars, uppercase, number & special char</FormDescription>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
 
-        {/* Confirm Password */}
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
+        <div className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+          <FormField control={form.control} name="confirmPassword" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Confirm Password
-              </FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="h-11 pr-10"
-                    {...field}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showConfirmPassword ? (
-                      <Eye className="w-5 h-5" />
-                    ) : (
-                      <EyeOff className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </FormControl>
+              <FormLabel className="flex items-center gap-2"><Lock className="w-4 h-4 text-primary" />Confirm Password</FormLabel>
+              <FormControl><PasswordInput field={field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )}
-        />
+          )} />
+        </div>
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={isLoading}
-        className="w-full text-lg py-6 shadow-medium hover:shadow-strong transition-all duration-300 group"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Creating Account...
-          </>
-        ) : (
-          <>
-            <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            Create Phlebotomist Account
-          </>
-        )}
-      </Button>
+      <div className="animate-fade-in-up" style={{ animationDelay: "340ms" }}>
+        <Button type="submit" size="lg" disabled={isLoading} className="w-full py-6 shadow-medium hover:shadow-strong transition-all duration-300 group">
+          {isLoading ? (
+            <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Creating Account...</>
+          ) : (
+            <><UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />Create Phlebotomist Account</>
+          )}
+        </Button>
+      </div>
     </form>
   );
 };
 
-// -------------------- ROLE-BASED FORM WRAPPER --------------------
-
-const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void }) => {
+// ── Role-Based Form Wrapper ───────────────────────────────────────────────────
+const RoleBasedForm = ({
+  role,
+  onBack,
+}: {
+  role: UserRole;
+  onBack: () => void;
+}) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -921,7 +719,6 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
   const [signupEmail, setSignupEmail] = useState("");
   const [otp, setOtp] = useState("");
 
-  // Get the appropriate schema based on role
   const getSchema = (role: UserRole) => {
     const baseRefine = (schema: z.ZodObject<any>) =>
       schema.refine((data) => data.password === data.confirmPassword, {
@@ -930,42 +727,18 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
       });
 
     switch (role) {
-      case "patient":
-        return baseRefine(patientSchema);
-      case "lab":
-        return baseRefine(labSchema);
-      case "phlebotomist":
-        return baseRefine(phlebotomistSchema);
+      case "patient":   return baseRefine(patientSchema);
+      case "lab":       return baseRefine(labSchema);
+      case "phlebotomist": return baseRefine(phlebotomistSchema);
     }
   };
 
-  // Get default values based on role
   const getDefaultValues = (role: UserRole) => {
-    const base = {
-      role,
-      fullName: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
-    };
-
+    const base = { role, fullName: "", email: "", phone: "", password: "", confirmPassword: "" };
     switch (role) {
-      case "patient":
-        return { ...base, dateOfBirth: "", age: undefined, address: "" };
-      case "lab":
-        return {
-          ...base,
-          labName: "",
-          licenseCopy: undefined as any,
-          labAddress: "",
-        };
-      case "phlebotomist":
-        return {
-          ...base,
-          qualification: "",
-          trafficLicenseCopy: undefined as any,
-        };
+      case "patient":      return { ...base, dateOfBirth: "", age: undefined, address: "" };
+      case "lab":          return { ...base, labName: "", licenseCopy: undefined as any, labAddress: "" };
+      case "phlebotomist": return { ...base, qualification: "", trafficLicenseCopy: undefined as any };
     }
   };
 
@@ -977,83 +750,42 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
   const onSubmit = async (data: SignupFormValues) => {
     try {
       setIsLoading(true);
-      console.log("🚀 Starting signup with data:", data);
-
-      // Call appropriate API based on role
       let response;
       if (role === "patient") {
-        console.log("📞 Calling patient signup API...");
         response = await authAPI.signupPatient({
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          dateOfBirth: (data as any).dateOfBirth,
-          age: (data as any).age,
-          address: (data as any).address,
-          password: data.password,
+          fullName: data.fullName, email: data.email, phone: data.phone,
+          dateOfBirth: (data as any).dateOfBirth, age: (data as any).age,
+          address: (data as any).address, password: data.password,
         });
-        console.log("✅ Patient signup response:", response);
       } else if (role === "lab") {
-        console.log("📞 Calling lab signup API...");
         response = await authAPI.signupLab({
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          labName: (data as any).labName,
-          licenseCopy: (data as any).licenseCopy,
-          labAddress: (data as any).labAddress,
-          password: data.password,
+          fullName: data.fullName, email: data.email, phone: data.phone,
+          labName: (data as any).labName, licenseCopy: (data as any).licenseCopy,
+          labAddress: (data as any).labAddress, password: data.password,
         });
-        console.log("✅ Lab signup response:", response);
       } else if (role === "phlebotomist") {
-        console.log("📞 Calling phlebotomist signup API...");
         response = await authAPI.signupPhlebotomist({
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          qualification: (data as any).qualification,
-          password: data.password,
+          fullName: data.fullName, email: data.email, phone: data.phone,
+          qualification: (data as any).qualification, password: data.password,
           trafficLicenseCopy: (data as any).trafficLicenseCopy,
         });
-        console.log("✅ Phlebotomist signup response:", response);
       }
 
       if (response && response.success) {
         setSignupEmail(data.email);
-        toast({
-          title: "Success!",
-          description: "OTP sent to your email. Please check your inbox.",
-        });
-        // Show OTP dialog
+        toast({ title: "Success!", description: "OTP sent to your email. Please check your inbox." });
         setShowOTPDialog(true);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Signup Failed",
-          description: response?.message || "Please try again.",
-        });
+        toast({ variant: "destructive", title: "Signup Failed", description: response?.message || "Please try again." });
       }
     } catch (error: any) {
-      console.error("❌ Signup error details:", error);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-
       let errorMessage = "Something went wrong. Please try again.";
-
-      if (
-        error.message?.includes("Failed to fetch") ||
-        error.message?.includes("NetworkError")
-      ) {
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
         errorMessage = "Cannot connect to server. Make sure backend is running on port 5000.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage,
-      });
+      toast({ variant: "destructive", title: "Error", description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -1062,259 +794,259 @@ const RoleBasedForm = ({ role, onBack }: { role: UserRole; onBack: () => void })
   const handleVerifyOTP = async () => {
     try {
       setIsLoading(true);
-
       const response = await authAPI.verifyOTP(signupEmail, otp, role);
-
       if (response.success && response.data) {
-        // Save token using centralized storage utility
         storage.setToken(response.data.token);
-
-        toast({
-          title: "Email Verified!",
-          description: "Your account has been created successfully.",
-        });
-
-        // Navigate to appropriate dashboard
+        toast({ title: "Email Verified!", description: "Your account has been created successfully." });
         navigate(`/${role}`);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Verification Failed",
-          description: response.message || "Invalid OTP. Please try again.",
-        });
+        toast({ variant: "destructive", title: "Verification Failed", description: response.message || "Invalid OTP. Please try again." });
       }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to verify OTP. Please try again.",
-      });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to verify OTP. Please try again." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <>
-      {!showOTPDialog ? (
-        <>
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="mb-4 -ml-2"
-            disabled={isLoading}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Change Role
+  if (showOTPDialog) {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Check your email</h3>
+          <p className="text-sm text-muted-foreground">
+            We've sent a 6-digit OTP to <strong>{signupEmail}</strong>
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Enter OTP</label>
+            <Input
+              type="text"
+              placeholder="123456"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              maxLength={6}
+              className="text-center text-3xl tracking-[0.5em] h-14 font-mono bg-background/60"
+            />
+          </div>
+
+          <Button onClick={handleVerifyOTP} disabled={isLoading || otp.length !== 6} className="w-full" size="lg">
+            {isLoading ? "Verifying..." : "Verify & Continue →"}
           </Button>
 
-          <Form {...form}>
-            {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
-            {role === "lab" && <LabForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
-            {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
-          </Form>
-        </>
-      ) : (
-        <div className="space-y-6">
-          <div className="text-center">
-            <h3 className="text-xl font-semibold mb-2">Verify Your Email</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              We've sent a 6-digit OTP to <strong>{signupEmail}</strong>
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Enter OTP</label>
-              <Input
-                type="text"
-                placeholder="123456"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                className="text-center text-2xl tracking-widest"
-              />
-            </div>
-
-            <Button
-              onClick={handleVerifyOTP}
-              disabled={isLoading || otp.length !== 6}
-              className="w-full"
-              size="lg"
-            >
-              {isLoading ? "Verifying..." : "Verify & Continue"}
-            </Button>
-
-            <Button
-              variant="ghost"
-              onClick={() => {
-                authAPI.resendOTP(signupEmail, role);
-                toast({
-                  title: "OTP Resent",
-                  description: "Please check your email.",
-                });
-              }}
-              disabled={isLoading}
-              className="w-full"
-            >
-              Resend OTP
-            </Button>
-          </div>
+          <Button variant="ghost" onClick={() => { authAPI.resendOTP(signupEmail, role); toast({ title: "OTP Resent", description: "Please check your email." }); }} disabled={isLoading} className="w-full">
+            Resend OTP
+          </Button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Button variant="ghost" onClick={onBack} className="mb-4 -ml-2 hover:bg-primary/10 transition-colors" disabled={isLoading}>
+        <ArrowLeft className="w-4 h-4 mr-2" /> Change Role
+      </Button>
+
+      <Form {...form}>
+        {role === "patient" && <PatientForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
+        {role === "lab" && <LabForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
+        {role === "phlebotomist" && <PhlebotomistForm form={form} onSubmit={onSubmit} isLoading={isLoading} />}
+      </Form>
     </>
   );
 };
 
-// -------------------- MAIN SIGNUP PAGE --------------------
+// ── Gradient Panel ─────────────────────────────────────────────────────────────
+const SignupGradientPanel = ({ role }: { role: UserRole | null }) => {
+  const cfg = role ? roleConfig[role] : null;
+  const gradient = cfg?.gradient ?? defaultPanel.gradient;
+  const blob1 = cfg?.blobColor1 ?? defaultPanel.blobColor1;
+  const blob2 = cfg?.blobColor2 ?? defaultPanel.blobColor2;
 
+  return (
+    <div
+      className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden animate-slide-in-right transition-all duration-700"
+      style={{ background: gradient }}
+    >
+      {/* Grain overlay */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none"
+        style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundSize: "200px 200px" }}
+      />
+
+      <Blob className={`w-80 h-80 ${blob1} top-0 -right-10`} />
+      <Blob className={`w-64 h-64 ${blob2} bottom-10 -left-10`} />
+      <Blob className={`w-48 h-48 ${blob1} top-1/2 left-1/2`} />
+
+      {/* Floating icons */}
+      <FloatingIcon icon={ShieldCheck} className="top-[12%] left-[15%] w-12 h-12 animate-bounce-gentle" />
+      <FloatingIcon icon={Activity} className="top-[30%] right-[12%] w-14 h-14 animate-float" />
+      <FloatingIcon icon={cfg?.Icon ?? HeartPulse} className="bottom-[25%] left-[20%] w-12 h-12 animate-float-slow" />
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-12 max-w-md">
+        <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center mx-auto mb-8 shadow-lg">
+          <img src={logo} alt="Lab2Home" className="w-12 h-12" />
+        </div>
+
+        {cfg ? (
+          <>
+            <h2 className="text-3xl font-bold text-white mb-4 leading-tight">{cfg.panelTitle}</h2>
+            <p className="text-white/75 text-base mb-8 leading-relaxed">{cfg.panelSub}</p>
+            <div className="space-y-3 text-left">
+              {cfg.benefits.map((b) => (
+                <div key={b} className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20">
+                  <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${cfg.accentColor}`} />
+                  <span className="text-white/90 text-sm font-medium">{b}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+              Join <span className="text-white/80">Lab2Home</span> Today
+            </h2>
+            <p className="text-white/75 text-lg mb-8 leading-relaxed">
+              Healthcare at your doorstep — whether you're a patient, diagnostic lab, or phlebotomist.
+            </p>
+            <div className="grid grid-cols-3 gap-4">
+              {[{ value: "50K+", label: "Patients" }, { value: "200+", label: "Labs" }, { value: "99%", label: "Accuracy" }].map((stat) => (
+                <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                  <div className="text-2xl font-bold text-white">{stat.value}</div>
+                  <div className="text-white/70 text-sm">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Signup Page ───────────────────────────────────────────────────────────
 const Signup = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const [isNavExpanded, setIsNavExpanded] = useState(false);
-
-  const handleRoleSelect = (role: UserRole) => {
-    setSelectedRole(role);
-  };
-
-  const handleBackToRoleSelection = () => {
-    setSelectedRole(null);
-  };
 
   const getRoleTitle = (role: UserRole) => {
     switch (role) {
-      case "patient":
-        return "Patient";
-      case "lab":
-        return "Lab";
-      case "phlebotomist":
-        return "Phlebotomist";
+      case "patient": return "Patient";
+      case "lab": return "Lab";
+      case "phlebotomist": return "Phlebotomist";
     }
   };
 
-  /* navItems removed */
-
   return (
     <div className="min-h-screen flex flex-col">
-      <section className="relative flex-1 flex items-center justify-center overflow-hidden py-12">
-        <CardNav
-          logo={logo}
-          logoAlt="Lab2Home Logo"
-          items={publicNavItems}
-          baseColor="#fff"
-          menuColor="hsl(200 85% 45%)"
-          onExpandChange={setIsNavExpanded}
-        />
-        <Squares speed={0.5} squareSize={40} direction="diagonal" />
-
-        {/* Animated Title */}
-        <div
-          className={`absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl text-center z-[1] transition-all duration-400 ${isNavExpanded
-            ? "opacity-0 scale-95 -translate-y-8 pointer-events-none"
-            : "opacity-100 scale-100 translate-y-0"
-            }`}
-        >
-          <div className="animate-fade-in-up">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight">
-              Join{" "}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Lab2Home
-              </span>{" "}
-              Today
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground animate-pulse">
-              Healthcare at Your Doorstep
-            </p>
+      {/* Minimal Top Bar */}
+      <header className="absolute top-0 w-full z-50 p-6 flex justify-between items-center">
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <img src={logo} alt="Lab2Home" className="w-6 h-6" />
           </div>
+          <span className="font-bold text-xl tracking-tight hidden sm:block">
+            <span className="text-foreground">Lab2</span>
+            <span className="text-primary">Home</span>
+          </span>
+        </Link>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            Already have an account?
+          </span>
+          <Link to="/login">
+            <Button variant="outline" className="border-primary/20 hover:bg-primary/5 text-primary">
+              Sign In
+            </Button>
+          </Link>
         </div>
+      </header>
 
-        <div className="relative z-10 container mx-auto px-4 w-full max-w-2xl pointer-events-none pt-96 md:pt-72">
-          <div className="animate-fade-in-up">
+      <main className="flex-1 flex flex-col lg:flex-row">
+        {/* ── LEFT: Form Panel ──────────────────────────────────────────────── */}
+        <div
+          className="flex-1 lg:w-1/2 flex items-center justify-center px-6 py-12 bg-background relative overflow-hidden animate-slide-in-left transition-all duration-400"
+        >
+          {/* Background circles */}
+          <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+          <div className="w-full max-w-xl relative z-10">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-primary/20 shadow-soft mb-6 mx-auto w-fit">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-soft mb-6 animate-fade-in">
               <UserPlus className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                {selectedRole
-                  ? `Create ${getRoleTitle(selectedRole)} Account`
-                  : "Create Your Account"}
+              <span className="text-sm font-medium text-primary">
+                {selectedRole ? `Create ${getRoleTitle(selectedRole)} Account` : "Create Your Account"}
               </span>
             </div>
 
-            {/* Signup Card */}
-            <Card className="bg-card/90 backdrop-blur-sm border-primary/20 shadow-strong pointer-events-auto">
-              <CardHeader className="text-center space-y-2">
-                <CardTitle className="text-3xl font-bold">
-                  Join{" "}
-                  <span className="bg-gradient-primary bg-clip-text text-transparent">
-                    Lab2Home
-                  </span>
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {selectedRole
-                    ? `Complete your ${getRoleTitle(selectedRole).toLowerCase()} registration`
-                    : "Start your journey to better health at home"}
-                </CardDescription>
-              </CardHeader>
+            {/* Card */}
+            <div className="glass-card rounded-2xl p-8 animate-fade-in-up">
+              <h1 className="text-3xl font-bold text-foreground mb-1">
+                {selectedRole ? `${getRoleTitle(selectedRole)} Registration` : "Join Lab2Home"}
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                {selectedRole
+                  ? `Complete your ${getRoleTitle(selectedRole).toLowerCase()} registration below`
+                  : "Start your journey to better health at home"}
+              </p>
 
-              <CardContent>
-                {!selectedRole ? (
-                  <RoleSelection onSelectRole={handleRoleSelect} />
-                ) : (
-                  <RoleBasedForm
-                    key={selectedRole}
-                    role={selectedRole}
-                    onBack={handleBackToRoleSelection}
-                  />
-                )}
+              {!selectedRole ? (
+                <RoleSelection onSelectRole={setSelectedRole} />
+              ) : (
+                <RoleBasedForm
+                  key={selectedRole}
+                  role={selectedRole}
+                  onBack={() => setSelectedRole(null)}
+                />
+              )}
 
-                {/* Login Link */}
-                {selectedRole && (
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Already have an account?{" "}
-                      <Link
-                        to="/login"
-                        className="text-primary font-medium hover:underline hover:text-primary/80 transition-colors"
-                      >
-                        Sign in
-                      </Link>
-                    </p>
-                  </div>
-                )}
-
-                {/* Back to Home */}
-                <div className="mt-4 text-center">
-                  <Link
-                    to="/"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    ← Back to Home
-                  </Link>
+              {/* Login link — shown after role is chosen */}
+              {selectedRole && (
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link to="/login" className="text-primary font-semibold hover:underline hover:text-primary/80 transition-colors">
+                      Sign in →
+                    </Link>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              {/* Back to Home */}
+              <div className="mt-4 text-center">
+                <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  ← Back to Home
+                </Link>
+              </div>
+            </div>
 
             {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mt-8 pt-6 border-t border-border/50">
+            <div className="grid grid-cols-3 gap-3 mt-8 pt-6 border-t border-border/50 animate-fade-in anim-delay-500">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary mb-1">100%</div>
+                <div className="text-xl font-bold text-primary mb-1">100%</div>
                 <div className="text-xs text-muted-foreground">Secure</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-secondary mb-1">24/7</div>
+                <div className="text-xl font-bold text-secondary mb-1">24/7</div>
                 <div className="text-xs text-muted-foreground">Support</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-health mb-1">AI</div>
+                <div className="text-xl font-bold text-health mb-1">AI</div>
                 <div className="text-xs text-muted-foreground">Powered</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Decorative Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float -z-10" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float-slow -z-10" />
-      </section>
+        {/* ── RIGHT: Gradient Panel (changes per role) ──────────────────────── */}
+        <SignupGradientPanel role={selectedRole} />
+      </main>
 
       <Footer />
     </div>

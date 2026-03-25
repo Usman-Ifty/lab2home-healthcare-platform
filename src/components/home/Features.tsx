@@ -1,81 +1,102 @@
-import { Card } from "@/components/ui/card";
 import { Home, Brain, FileText, ShoppingBag, MessageSquare, Bell } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
   {
     icon: Home,
-    title: "Home Sample Collection",
-    description: "Professional phlebotomists visit your home at your convenience for blood sample collection.",
+    title: "Home Collection",
+    description: "Professional phlebotomists visit your home at your convenience for safe sample collection.",
     color: "text-primary",
-    bgColor: "bg-primary/10",
+    bgColor: "from-primary/20 to-primary/5",
+    borderColor: "group-hover:border-primary/50",
   },
   {
     icon: Brain,
-    title: "AI Report Interpretation",
+    title: "AI Interpretation",
     description: "Get your lab reports explained in simple, patient-friendly language using advanced AI.",
     color: "text-secondary",
-    bgColor: "bg-secondary/10",
+    bgColor: "from-secondary/20 to-secondary/5",
+    borderColor: "group-hover:border-secondary/50",
   },
   {
     icon: FileText,
     title: "Real-Time Tracking",
     description: "Monitor your test progress from sample collection to result delivery in real-time.",
     color: "text-health",
-    bgColor: "bg-health/10",
+    bgColor: "from-health/20 to-health/5",
+    borderColor: "group-hover:border-health/50",
   },
   {
     icon: ShoppingBag,
-    title: "Medical Marketplace",
-    description: "Access to Vital Track Marketplace for thermometers, BP monitors, glucometers, and more.",
-    color: "text-primary-light",
-    bgColor: "bg-primary/10",
+    title: "Marketplace",
+    description: "Access to Vital Track Store for essential medical monitoring devices and equipment.",
+    color: "text-primary",
+    bgColor: "from-primary/20 to-primary/5",
+    borderColor: "group-hover:border-primary/50",
   },
   {
     icon: MessageSquare,
-    title: "Direct Communication",
-    description: "Stay connected with labs and phlebotomists through our integrated messaging system.",
-    color: "text-secondary-light",
-    bgColor: "bg-secondary/10",
+    title: "Direct Chat",
+    description: "Stay connected with labs and phlebotomists through our secure integrated messaging system.",
+    color: "text-secondary",
+    bgColor: "from-secondary/20 to-secondary/5",
+    borderColor: "group-hover:border-secondary/50",
   },
   {
     icon: Bell,
-    title: "Smart Notifications",
-    description: "Receive timely updates about your appointments, test status, and results.",
-    color: "text-health-light",
-    bgColor: "bg-health/10",
+    title: "Smart Alerts",
+    description: "Receive timely push notifications about your appointments, test status, and results.",
+    color: "text-health",
+    bgColor: "from-health/20 to-health/5",
+    borderColor: "group-hover:border-health/50",
   },
 ];
 
 const Features = () => {
   return (
-    <section className="py-24 bg-gradient-soft">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16 animate-fade-in-up">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Comprehensive Healthcare Solutions
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Everything you need for convenient, reliable, and accessible diagnostic services
-          </p>
-        </div>
+    <section className="relative py-32 bg-muted/30 overflow-hidden border-y border-border/50">
+      {/* Background Ambience */}
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-20"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-sm font-bold tracking-wide uppercase mb-4">
+            Features
+          </div>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6 tracking-tight">
+            Comprehensive <span className="text-secondary">Solutions</span>
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Everything you need for convenient, reliable, and highly accessible diagnostic services tailored to modern patient needs.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           {features.map((feature, index) => (
-            <Card
+            <motion.div
               key={index}
-              className="group p-8 hover:shadow-strong transition-all duration-300 hover:-translate-y-2 bg-card/80 backdrop-blur-sm border-border/50"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              className={`group glass-card p-8 rounded-3xl bg-card/50 backdrop-blur-md border border-border/60 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 ${feature.borderColor}`}
             >
-              <div className={`w-14 h-14 rounded-2xl ${feature.bgColor} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.bgColor} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-inner`}>
                 <feature.icon className={`w-7 h-7 ${feature.color}`} />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">
+              <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
                 {feature.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-[15px]">
                 {feature.description}
               </p>
-            </Card>
+            </motion.div>
           ))}
         </div>
       </div>

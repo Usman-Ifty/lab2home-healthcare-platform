@@ -1,6 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
-import CardNav from "@/components/home/CardNav";
+import Navbar from "@/components/shared/Navbar";
 import logo from "/logo.svg";
 
 const NotFound = () => {
@@ -43,14 +43,7 @@ const NotFound = () => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-muted">
-      <CardNav
-        logo={logo}
-        logoAlt="Lab2Home Logo"
-        items={navItems}
-        baseColor="#fff"
-        menuColor="hsl(200 85% 45%)"
-        buttonLink="/signup"
-      />
+      <Navbar />
       <div className="text-center">
         <h1 className="mb-4 text-4xl font-bold">404</h1>
         <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>

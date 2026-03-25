@@ -176,8 +176,7 @@ const CardNav: React.FC<CardNavProps> = ({
     >
       <nav
         ref={navRef}
-        className={`card-nav ${isExpanded ? 'open' : ''} block p-0 rounded-xl shadow-md relative overflow-hidden will-change-[height]`}
-        style={{ backgroundColor: baseColor }}
+        className={`card-nav ${isExpanded ? 'open' : ''} block p-0 rounded-2xl border border-white/20 dark:border-white/10 shadow-soft relative overflow-hidden will-change-[height] bg-white/70 dark:bg-card/70 backdrop-blur-xl transition-shadow duration-300 hover:shadow-medium`}
       >
         <div className="card-nav-top absolute inset-x-0 top-0 h-[60px] flex items-center justify-between p-2 pl-[1.1rem] z-[2]">
           <div
@@ -204,22 +203,23 @@ const CardNav: React.FC<CardNavProps> = ({
             <img src={logo} alt={logoAlt} className="logo h-[28px]" />
           </Link>
 
-          <div className="hidden md:flex gap-2 items-center">
+          <div className="hidden md:flex gap-3 items-center pr-2">
             <Button
               asChild
               variant="outline"
-              className="h-[44px]"
+              className="h-[40px] rounded-full px-6 border-primary/20 hover:bg-primary/5 text-primary text-sm font-medium transition-all"
             >
               <Link to="/login">
-                Login
+                Sign In
               </Link>
             </Button>
             <Button
               asChild
-              className="h-[44px]"
+              className="h-[40px] rounded-full px-6 shadow-soft hover:shadow-medium transition-all group text-sm font-medium"
             >
               <Link to="/signup">
-                Signup
+                Get Started
+                <GoArrowUpRight className="ml-1.5 w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </Link>
             </Button>
           </div>
@@ -236,7 +236,7 @@ const CardNav: React.FC<CardNavProps> = ({
           {(items || []).slice(0, 3).map((item, idx) => (
             <div
               key={`${item.label}-${idx}`}
-              className="nav-card select-none relative flex flex-col gap-2 p-[12px_16px] rounded-[calc(0.75rem-0.2rem)] min-w-0 flex-[1_1_auto] h-auto min-h-[60px] md:h-full md:min-h-0 md:flex-[1_1_0%]"
+              className="nav-card select-none relative flex flex-col gap-2 p-[16px_20px] rounded-[calc(1rem-0.2rem)] min-w-0 flex-[1_1_auto] h-auto min-h-[60px] md:h-full md:min-h-0 md:flex-[1_1_0%] hover:-translate-y-1 hover:shadow-medium transition-all duration-300"
               ref={setCardRef(idx)}
               style={{ backgroundColor: item.bgColor, color: item.textColor }}
             >
