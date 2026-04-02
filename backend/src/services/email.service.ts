@@ -127,7 +127,7 @@ export const sendWelcomeEmail = async (email: string, name: string, role: string
           </ul>
           
           <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="button">Go to Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" class="button">Go to Dashboard</a>
           </div>
           
           <p>If you have any questions, feel free to reach out to our support team.</p>
@@ -246,7 +246,7 @@ export const sendBookingStatusUpdateEmail = async (
           ` : ''}
           
           <div style="text-align: center; margin: 20px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/patient" 
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/patient" 
                style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">
               View Dashboard
             </a>
@@ -316,7 +316,7 @@ export const sendReportUploadedEmail = async (
           <p>Or log in to your dashboard to view all your reports.</p>
           
           <div style="text-align: center; margin-top: 10px;">
-             <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/patient/reports" style="color: #667eea; text-decoration: none;">Go to Dashboard</a>
+             <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/patient/reports" style="color: #667eea; text-decoration: none;">Go to Dashboard</a>
           </div>
           
           <div class="footer">
@@ -377,7 +377,7 @@ export const sendNewBookingEmail = async (
           <p>Please log in to your dashboard to view details and manage this booking.</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lab/appointments" class="button">View Booking</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/lab/appointments" class="button">View Booking</a>
           </div>
           
           <div class="footer">

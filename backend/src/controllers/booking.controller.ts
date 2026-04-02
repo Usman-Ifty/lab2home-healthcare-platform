@@ -3,7 +3,7 @@ import Booking from '../models/Booking';
 import Test from '../models/Test';
 import Lab from '../models/Lab';
 import Patient from '../models/Patient';
-import * as payfastService from '../services/payfast.service';
+import * as stripeService from '../services/stripe.service';
 import Notification from '../models/Notification';
 
 // ============================================
@@ -102,22 +102,29 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
 
         await booking.save();
 
-        // Prepare PayFast data if online payment
+        // Prepare Stripe Checkout Session if online payment
         let paymentData = null;
         if (paymentMethod === 'online') {
             try {
-                paymentData = payfastService.generatePaymentData({
+                const stripeSession = await stripeService.createCheckoutSession({
                     orderId: booking._id.toString(),
-                    amount: totalAmount,
-                    itemName: `Lab Test Booking`,
-                    itemDescription: `Booking for ${testDocs.map(t => t.name).join(', ')}`,
-                    patientEmail: patientDoc.email,
-                    patientName: patientDoc.fullName,
-                    // Different notify URL for bookings
-                    notifyUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/bookings/itn`
+                    items: testDocs.map(test => ({
+                        name: test.name,
+                        amount: test.basePrice,
+                        quantity: 1,
+                        description: test.description
+                    })),
+                    customerEmail: patientDoc.email,
+                    customerName: patientDoc.fullName,
+                    successUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-success`,
+                    cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`,
                 });
+                paymentData = {
+                    checkoutUrl: stripeSession.url,
+                    sessionId: stripeSession.sessionId
+                };
             } catch (payError) {
-                console.error('Error generating PayFast data for booking:', payError);
+                console.error('Error generating Stripe session for booking:', payError);
             }
         }
 
@@ -677,69 +684,65 @@ export const getReport = async (req: Request, res: Response): Promise<void> => {
     }
 };
 // ============================================
-// HANDLE PAYFAST ITN (Webhooks)
+// VERIFY STRIPE PAYMENT (Success Redirect)
 // ============================================
-export const handleBookingITN = async (req: Request, res: Response): Promise<void> => {
+export const verifyStripePayment = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('📥 Received PayFast ITN for Booking:', req.body);
+        const { sessionId, orderId } = req.body;
+        console.log(`🔍 Verifying Stripe Booking: Session=${sessionId}, OrderId=${orderId}`);
 
-        const {
-            m_payment_id,
-            pf_payment_id,
-            payment_status,
-            item_name,
-            amount_gross,
-            signature,
-        } = req.body;
-
-        // 1. Validate Signature
-        const receivedSignature = signature;
-        const dataToVerify = { ...req.body };
-        delete dataToVerify.signature;
-
-        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
-
-        if (receivedSignature !== calculatedSignature) {
-            console.error('❌ PayFast Signature Validation Failed for Booking');
-            res.status(400).send('Invalid signature');
+        if (!sessionId) {
+            res.status(400).json({ success: false, message: 'Session ID is required' });
             return;
         }
 
-        // 2. Find Booking
-        const booking = await Booking.findById(m_payment_id);
-        if (!booking) {
-            console.error(`❌ Booking not found for ITN: ${m_payment_id}`);
-            res.status(404).send('Booking not found');
-            return;
+        const session = await stripeService.verifySession(sessionId);
+        console.log(`📦 Stripe Session Status: ${session.payment_status}, Amount: ${session.amount_total}`);
+
+        const idToFind = orderId || session.client_reference_id;
+        let booking = null;
+
+        if (session.payment_status === 'paid' || session.status === 'complete') {
+            booking = await Booking.findById(idToFind);
+            
+            if (booking) {
+                booking.paymentStatus = 'paid';
+                booking.transactionId = session.payment_intent as string;
+                await booking.save();
+
+                console.log(`✅ Booking ${booking._id} marked as PAID`);
+
+                // Notify patient
+                await Notification.create({
+                    user: booking.patient,
+                    userType: 'patient',
+                    type: 'booking_confirmed',
+                    title: 'Payment Received! 💳',
+                    message: `Payment for your lab test booking was successful. Your booking is being processed.`,
+                    relatedBooking: booking._id,
+                });
+
+                res.status(200).json({
+                    success: true,
+                    message: 'Payment verified and booking updated',
+                    data: booking
+                });
+                return;
+            } else {
+                console.warn(`⚠️ Booking not found for ID: ${idToFind}`);
+            }
         }
 
-        // 3. Update Booking Status
-        if (payment_status === 'COMPLETE') {
-            booking.paymentStatus = 'paid';
-            booking.transactionId = pf_payment_id;
-            // For bookings, we might keep status as pending until lab confirms, 
-            // but we definitely mark as paid.
-            await booking.save();
-
-            // Notify patient
-            await Notification.create({
-                user: booking.patient,
-                userType: 'patient',
-                type: 'payment_completed',
-                title: 'Payment Received! 💳',
-                message: `Payment for your lab test booking was successful. Your booking is being processed.`,
-                relatedBooking: booking._id,
-            });
-
-            console.log(`✅ Booking ${booking._id} marked as PAID via PayFast`);
-        } else if (payment_status === 'FAILED') {
-            // paymentStatus stays pending or we could add a failed status
-            console.log(`⚠️ Payment FAILED for booking ${booking._id}`);
-        }
-
-        res.status(200).send('OK');
-    } catch (error) {
-        console.error('Error handling Booking ITN:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(400).json({
+            success: false,
+            message: booking ? `Payment status is ${session.payment_status}` : `Booking with ID ${idToFind} not found in database.`
+        });
+    } catch (error: any) {
+        console.error('❌ Stripe verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to verify payment',
+            error: error.message
+        });
     }
 };

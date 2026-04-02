@@ -1,5 +1,8 @@
-import express, { Application } from 'express';
 import dotenv from 'dotenv';
+// Load environment variables immediately
+dotenv.config();
+
+import express, { Application } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { createServer } from 'http';
@@ -20,9 +23,6 @@ import feedbackRoutes from './routes/feedback.routes';
 import { errorHandler, notFound } from './middleware/error.middleware';
 import { initializeSocket } from './socket/chat.socket';
 import { setIO } from './controllers/chat.controller';
-
-// Load environment variables
-dotenv.config();
 
 // Initialize Express app
 const app: Application = express();

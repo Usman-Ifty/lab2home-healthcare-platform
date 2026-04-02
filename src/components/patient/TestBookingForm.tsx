@@ -209,40 +209,16 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
       if (response.success) {
         if (paymentMethod === 'online' && response.data.paymentData) {
           toast.info('Redirecting to secure payment gateway...');
-
-          const paymentData = response.data.paymentData;
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = paymentData.action_url;
-
-          Object.keys(paymentData).forEach(key => {
-            if (key !== 'action_url') {
-              const input = document.createElement('input');
-              input.type = 'hidden';
-              input.name = key;
-              input.value = paymentData[key];
-              form.appendChild(input);
-            }
-          });
-
-          document.body.appendChild(form);
-          form.submit();
+          // Redirect directly to the Stripe Checkout URL
+          window.location.href = response.data.paymentData.checkoutUrl;
           return;
         }
 
         toast.success("Booking confirmed! Lab has been notified.");
-        // Reset form
-        setSelectedTests([]);
-        setDate(undefined);
-        setSelectedTime("");
-        setAddress({
-          fullAddress: "",
-          landmark: "",
-          city: "",
-          state: "",
-          pincode: "",
-          contactPhone: "",
-        });
+        // Navigate after short delay
+        setTimeout(() => {
+          window.location.href = '/patient/reports'; // Use window.location for hard refresh to ensure dashboard updates
+        }, 1500);
       } else {
         toast.error(response.message || "Failed to create booking");
       }
@@ -668,7 +644,7 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
             <CreditCard className="h-5 w-5 text-accent" />
             <div>
               <p className="font-medium">Online Payment</p>
-              <p className="text-xs text-muted-foreground">Pay via PayFast</p>
+              <p className="text-xs text-muted-foreground">Pay via Stripe</p>
             </div>
           </Label>
         </RadioGroup>

@@ -8,7 +8,7 @@ import {
     cancelBooking,
     uploadReport,
     getReport,
-    handleBookingITN,
+    verifyStripePayment,
 } from '../controllers/booking.controller';
 import { protect } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -24,6 +24,6 @@ router.put('/:id/status', protect, updateBookingStatus);
 router.delete('/:id', protect, cancelBooking);
 router.post('/:id/upload-report', protect, upload.single('report'), uploadReport);
 router.get('/:id/report', getReport); // Public route for viewing reports
-router.post('/itn', handleBookingITN);
+router.post('/verify-stripe', protect, verifyStripePayment);
 
 export default router;

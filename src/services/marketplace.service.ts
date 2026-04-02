@@ -242,3 +242,12 @@ export const processRefund = async (token: string, id: string, reason?: string) 
     );
     return response.data;
 };
+
+export const verifyMarketplaceStripePayment = async (token: string, sessionId: string, orderId?: string) => {
+    const response = await axios.post(
+        `${API_URL}/marketplace/verify-stripe`,
+        { sessionId, orderId },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+};

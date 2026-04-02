@@ -277,10 +277,18 @@ export const createBooking = async (bookingData: {
   collectionType: 'home' | 'lab';
   collectionAddress?: string;
   notes?: string;
+  paymentMethod?: string;
 }): Promise<ApiResponse<any>> => {
   return apiRequest<any>('/bookings', {
     method: 'POST',
     body: JSON.stringify(bookingData),
+  });
+};
+
+export const verifyStripePayment = async (sessionId: string, orderId?: string): Promise<ApiResponse<any>> => {
+  return apiRequest<any>('/bookings/verify-stripe', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, orderId }),
   });
 };
 

@@ -10,7 +10,7 @@ import path from 'path';
 import fs from 'fs';
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail, sendAdminNewOrderEmail } from '../services/email.service';
 import Patient from '../models/Patient';
-import * as payfastService from '../services/payfast.service';
+import * as stripeService from '../services/stripe.service';
 
 // ============================================
 // MULTER CONFIGURATION FOR PRODUCT IMAGES
@@ -741,21 +741,28 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             });
         }
 
-        // Prepare PayFast data if online payment
+        // Prepare Stripe Checkout Session if online payment
         let paymentData = null;
         if (paymentMethod === 'online') {
             try {
-                const patient = await Patient.findById(patientId);
-                paymentData = payfastService.generatePaymentData({
-                    orderId: order.orderNumber,
-                    amount: total,
-                    itemName: `Order ${order.orderNumber}`,
-                    patientEmail: patient?.email || '',
-                    patientName: patient?.fullName || 'Customer',
+                const stripeSession = await stripeService.createCheckoutSession({
+                    orderId: order._id.toString(),
+                    items: orderItems.map(item => ({
+                        name: item.productName,
+                        amount: item.price,
+                        quantity: item.quantity
+                    })),
+                    customerEmail: (await Patient.findById(patientId))?.email || '',
+                    customerName: (await Patient.findById(patientId))?.fullName || 'Customer',
+                    successUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-success`,
+                    cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment-cancel`,
                 });
+                paymentData = {
+                    checkoutUrl: stripeSession.url,
+                    sessionId: stripeSession.sessionId
+                };
             } catch (payError) {
-                console.error('Error generating PayFast data:', payError);
-                // We'll still return the order, but notify about payment data failure
+                console.error('Error generating Stripe session for order:', payError);
             }
         }
 
@@ -1375,76 +1382,71 @@ export const processRefund = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// HANDLE PAYFAST ITN (Instant Transaction Notification)
-export const handlePayFastITN = async (req: Request, res: Response): Promise<void> => {
+// ============================================
+// VERIFY STRIPE PAYMENT (Marketplace)
+// ============================================
+export const verifyMarketplaceStripePayment = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('Received PayFast ITN:', req.body);
+        const { sessionId, orderId } = req.body;
+        console.log(`🛒 Verifying Stripe Marketplace Order: Session=${sessionId}, OrderId=${orderId}`);
 
-        const {
-            m_payment_id, // This is our orderNumber
-            pf_payment_id, // PayFast transaction ID
-            payment_status,
-            item_name,
-            amount_gross,
-            signature,
-        } = req.body;
-
-        // 1. Validate Signature
-        const receivedSignature = signature;
-        const dataToVerify = { ...req.body };
-        delete dataToVerify.signature;
-
-        const calculatedSignature = payfastService.generateSignature(dataToVerify, process.env.PAYFAST_PASSPHRASE);
-
-        if (receivedSignature !== calculatedSignature) {
-            console.error('PayFast Signature Validation Failed');
-            res.status(400).send('Invalid signature');
+        if (!sessionId) {
+            res.status(400).json({ success: false, message: 'Session ID is required' });
             return;
         }
 
-        // 2. Find Order
-        const order = await Order.findOne({ orderNumber: m_payment_id });
-        if (!order) {
-            console.error(`Order not found for ITN: ${m_payment_id}`);
-            res.status(404).send('Order not found');
-            return;
+        const session = await stripeService.verifySession(sessionId);
+        console.log(`📦 Stripe Marketplace Status: ${session.payment_status}, Status: ${session.status}`);
+
+        const idToFind = orderId || session.client_reference_id;
+        let order = null;
+
+        if (session.payment_status === 'paid' || session.status === 'complete') {
+            if (!idToFind) {
+                res.status(400).json({ success: false, message: 'Could not find Order ID' });
+                return;
+            }
+
+            order = await Order.findById(idToFind);
+            if (order) {
+                order.paymentStatus = 'completed';
+                order.transactionId = session.payment_intent as string;
+                order.status = 'confirmed';
+                await order.save();
+
+                console.log(`✅ Order ${order._id} marked as PAID`);
+
+                // Notify patient
+                await Notification.create({
+                    user: order.patient,
+                    userType: 'patient',
+                    type: 'order_status_updated',
+                    title: 'Payment Received! 💳',
+                    message: `Payment for your order ${order.orderNumber} was successful.`,
+                    metadata: { orderId: order._id },
+                });
+
+                res.status(200).json({
+                    success: true,
+                    message: 'Payment verified and order updated',
+                    data: order
+                });
+                return;
+            } else {
+                console.warn(`⚠️ Order not found for ID: ${idToFind} (Might be a booking)`);
+            }
         }
 
-        // 3. Update Order Status
-        if (payment_status === 'COMPLETE') {
-            order.paymentStatus = 'completed';
-            order.transactionId = pf_payment_id;
-            // You might want to update order status to 'confirmed' automatically
-            order.status = 'confirmed';
-            await order.save();
-
-            // Notify patient
-            await Notification.create({
-                user: order.patient,
-                userType: 'patient',
-                type: 'payment_completed',
-                title: 'Payment Received! 💳',
-                message: `Payment for order ${order.orderNumber} was successful. Your order is now confirmed.`,
-                metadata: { orderId: order._id },
-            });
-        } else if (payment_status === 'FAILED') {
-            order.paymentStatus = 'failed';
-            await order.save();
-
-            await Notification.create({
-                user: order.patient,
-                userType: 'patient',
-                type: 'payment_failed',
-                title: 'Payment Failed ❌',
-                message: `Payment for order ${order.orderNumber} failed. Please try again or contact support.`,
-                metadata: { orderId: order._id },
-            });
-        }
-
-        // PayFast expects a 200 OK response
-        res.status(200).send('OK');
+        res.status(400).json({
+            success: false,
+            message: order ? `Payment status is ${session.payment_status}` : `Order with ID ${idToFind} not found in database.`
+        });
     } catch (error: any) {
-        console.error('PayFast ITN Error:', error);
-        res.status(500).send('Internal Server Error');
+        console.error('❌ Stripe verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to verify payment',
+            error: error.message
+        });
     }
 };
