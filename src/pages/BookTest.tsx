@@ -24,7 +24,6 @@ import TestBookingForm from "@/components/patient/TestBookingForm";
 import { toast } from "sonner";
 import { fetchAvailableLabs } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import FeedbackForm from "@/components/shared/FeedbackForm";
 import RatingSummary from "@/components/shared/RatingSummary";
 
 export interface Test {
@@ -59,7 +58,6 @@ const BookTest: React.FC = () => {
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(true);
-  const [labReviewRefresh, setLabReviewRefresh] = useState(0);
 
   useEffect(() => {
     const loadLabs = async () => {
@@ -278,18 +276,7 @@ const BookTest: React.FC = () => {
                 targetType="lab"
                 targetId={selectedLab._id}
                 compact
-                refreshKey={labReviewRefresh}
               />
-              {token && (
-                <div className="mt-4">
-                  <FeedbackForm
-                    targetType="lab"
-                    targetId={selectedLab._id}
-                    targetName={selectedLab.labName}
-                    onSubmitted={() => setLabReviewRefresh(k => k + 1)}
-                  />
-                </div>
-              )}
             </Card>
           )}
 

@@ -152,6 +152,7 @@ All colors MUST be HSL.
 }
 
 @layer components {
+
   /* Glassmorphism card used on auth pages */
   .glass-card {
     @apply bg-white/70 dark:bg-card/70 backdrop-blur-xl border border-white/40 dark:border-white/10;
@@ -176,19 +177,43 @@ All colors MUST be HSL.
   }
 
   /* Staggered animation delays for form fields */
-  .anim-delay-100 { animation-delay: 100ms; }
-  .anim-delay-150 { animation-delay: 150ms; }
-  .anim-delay-200 { animation-delay: 200ms; }
-  .anim-delay-250 { animation-delay: 250ms; }
-  .anim-delay-300 { animation-delay: 300ms; }
-  .anim-delay-350 { animation-delay: 350ms; }
-  .anim-delay-400 { animation-delay: 400ms; }
-  .anim-delay-500 { animation-delay: 500ms; }
+  .anim-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .anim-delay-150 {
+    animation-delay: 150ms;
+  }
+
+  .anim-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .anim-delay-250 {
+    animation-delay: 250ms;
+  }
+
+  .anim-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .anim-delay-350 {
+    animation-delay: 350ms;
+  }
+
+  .anim-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .anim-delay-500 {
+    animation-delay: 500ms;
+  }
 
   /* Input focus glow */
   .auth-input {
     @apply transition-all duration-300;
   }
+
   .auth-input:focus-within {
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
   }

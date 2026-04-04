@@ -24,3 +24,24 @@ dist-ssr
 *.sw?
 backend/.env
 USECASE_ANALYSIS.md
+Lab2HomeDiagrams-UseCaseDiagram.png
+backend/test-output-lab.txt
+backend/test-output-login.txt
+backend/test-output.txt
+Screenshot 2026-04-04 065056.png
+Test-Results.md
+backend/test-output-booking.txt
+backend/test-output-marketplace.txt
+backend/test-output-full.txt
+backend/test-output-reports.txt
+backend/test-output-dashboard.txt
+backend/test-output-payment.txt
+backend/test-output-notifications.txt
+backend/test-output-feedback.txt
+backend/test-output-phlebotomist.txt
+backend/test-output-update-sample.txt
+backend/test-output-manage-appointments.txt
+backend/test-output-manage-marketplace.txt
+backend/test-output-marketplace-explore.txt
+backend/test-output-manage-users.txt
+backend/final-test-run.txt

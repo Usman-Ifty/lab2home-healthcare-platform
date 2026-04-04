@@ -10,13 +10,12 @@ import {
     Loader2,
     Star,
     MessageSquare,
-    Trash2,
-    Edit3,
     TestTube,
     Building2,
     Package,
     PlusCircle,
     X,
+    Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StarRating from '@/components/shared/StarRating';
@@ -29,6 +28,7 @@ interface PastTarget {
     id: string;
     name: string;
     date: string;
+    bookingId: string;
 }
 
 const targetTypeConfig = {
@@ -42,7 +42,6 @@ const MyReviews = () => {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
-    const [deletingId, setDeletingId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
@@ -83,42 +82,59 @@ const MyReviews = () => {
         if (!token || !user?.id) return;
         try {
             setLoadingTargets(true);
+            // Fetch completed bookings
             const response = await fetch(`${API_BASE_URL}/bookings/patient/${user.id}?status=completed`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
 
             if (data.success) {
-                const targetsMap = new Map<string, PastTarget>();
+                // Get all existing reviews for this patient to filter out already-reviewed bookings
+                const reviewsRes = await feedbackService.getMyReviews(token, { limit: 1000 });
+                const existingReviews = reviewsRes.data?.feedbacks || [];
+                const reviewedBookingTargets = new Set(
+                    existingReviews
+                        .filter((r: any) => r.booking)
+                        .map((r: any) => `${r.targetType}-${r.targetId}-${r.booking}`)
+                );
+
+                const targets: PastTarget[] = [];
 
                 data.data.forEach((booking: any) => {
-                    // Add Lab
+                    const bookingDate = booking.bookingDate;
+                    const bookingId = booking._id;
+
+                    // Add Lab entry for this booking
                     if (booking.lab?._id && booking.lab?.labName) {
-                        const key = `lab-${booking.lab._id}`;
-                        if (!targetsMap.has(key)) {
-                            targetsMap.set(key, {
+                        const key = `lab-${booking.lab._id}-${bookingId}`;
+                        if (!reviewedBookingTargets.has(key)) {
+                            targets.push({
                                 type: 'lab',
                                 id: booking.lab._id,
                                 name: booking.lab.labName,
-                                date: booking.bookingDate,
+                                date: bookingDate,
+                                bookingId,
                             });
                         }
                     }
-                    // Add Phlebotomist
+                    // Add Phlebotomist entry for this booking
                     if (booking.phlebotomist?._id && booking.phlebotomist?.fullName) {
-                        const key = `phlebotomist-${booking.phlebotomist._id}`;
-                        if (!targetsMap.has(key)) {
-                            targetsMap.set(key, {
+                        const key = `phlebotomist-${booking.phlebotomist._id}-${bookingId}`;
+                        if (!reviewedBookingTargets.has(key)) {
+                            targets.push({
                                 type: 'phlebotomist',
                                 id: booking.phlebotomist._id,
                                 name: booking.phlebotomist.fullName,
-                                date: booking.bookingDate,
+                                date: bookingDate,
+                                bookingId,
                             });
                         }
                     }
                 });
 
-                setPastTargets(Array.from(targetsMap.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                setPastTargets(
+                    targets.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                );
             }
         } catch (error) {
             console.error('Error fetching past targets:', error);
@@ -134,19 +150,7 @@ const MyReviews = () => {
         }
     }, [showRateModal]);
 
-    const handleDelete = async (feedbackId: string) => {
-        if (!token) return;
-        try {
-            setDeletingId(feedbackId);
-            await feedbackService.deleteFeedback(token, feedbackId);
-            toast.success('Review deleted');
-            fetchReviews();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to delete review');
-        } finally {
-            setDeletingId(null);
-        }
-    };
+
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -290,19 +294,9 @@ const MyReviews = () => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="flex-shrink-0 text-gray-400 hover:text-red-500"
-                                                        onClick={() => handleDelete(review._id)}
-                                                        disabled={deletingId === review._id}
-                                                    >
-                                                        {deletingId === review._id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground flex-shrink-0">
+                                                        <Lock className="h-3.5 w-3.5" />
+                                                    </div>
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -367,6 +361,7 @@ const MyReviews = () => {
                                         targetType={selectedTarget.type}
                                         targetId={selectedTarget.id}
                                         targetName={selectedTarget.name}
+                                        bookingId={selectedTarget.bookingId}
                                         onSubmitted={() => {
                                             fetchReviews();
                                             setShowRateModal(false);
@@ -388,7 +383,7 @@ const MyReviews = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {pastTargets.map((target) => (
                                         <Card
-                                            key={`${target.type}-${target.id}`}
+                                            key={`${target.type}-${target.id}-${target.bookingId}`}
                                             className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group overflow-hidden"
                                             onClick={() => setSelectedTarget(target)}
                                         >
@@ -402,7 +397,7 @@ const MyReviews = () => {
                                                         {target.name}
                                                     </h3>
                                                     <p className="text-xs text-muted-foreground capitalize flex items-center justify-between mt-1">
-                                                        <span>{target.type}</span>
+                                                        <span>{target.type} • {new Date(target.date).toLocaleDateString()}</span>
                                                         <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                                                             Rate now →
                                                         </span>

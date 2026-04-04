@@ -142,24 +142,24 @@ export const StatCard: React.FC<StatCardProps> = ({
         )}
       />
 
-      <div className="relative flex items-start justify-between">
-        <div className="space-y-2">
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <div className="flex items-baseline gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <h3 className="text-2xl font-bold tracking-tight text-foreground">
               {value}
             </h3>
             {change && trend && (
               <span
                 className={cn(
-                  "flex items-center gap-0.5 text-xs font-semibold",
+                  "inline-flex max-w-full items-center gap-0.5 break-words text-xs font-semibold",
                   trend === "up" ? "text-success" : "text-destructive"
                 )}
               >
                 {trend === "up" ? (
-                  <TrendingUp className="h-3 w-3" />
+                  <TrendingUp className="h-3 w-3 shrink-0" />
                 ) : (
-                  <TrendingDown className="h-3 w-3" />
+                  <TrendingDown className="h-3 w-3 shrink-0" />
                 )}
                 {change}
               </span>
@@ -169,7 +169,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
         <div
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
             variant.bg
           )}
         >

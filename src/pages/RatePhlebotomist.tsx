@@ -14,7 +14,8 @@ import { API_BASE_URL } from "@/lib/api";
 interface PastPhlebotomist {
     id: string;
     name: string;
-    recentBookingDate: string;
+    bookingId: string;
+    bookingDate: string;
     hasReviewed: boolean;
 }
 
@@ -22,7 +23,7 @@ const RatePhlebotomist = () => {
     const { token, user } = useAuth();
     const [phlebotomists, setPhlebotomists] = useState<PastPhlebotomist[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
     const fetchData = async () => {
         if (!token || !user?.id) return;
@@ -43,37 +44,33 @@ const RatePhlebotomist = () => {
             const reviewsData = await reviewsRes.json();
 
             if (bookingsData.success) {
-                // Create a Set of phlebotomist IDs the user has already reviewed
-                const reviewedIds = new Set(
-                    (reviewsData.data?.feedbacks || []).map((fb: any) => fb.targetId)
+                // Create a Set of booking+phlebotomist combinations already reviewed
+                const reviewedKeys = new Set(
+                    (reviewsData.data?.feedbacks || [])
+                        .filter((fb: any) => fb.booking)
+                        .map((fb: any) => `${fb.targetId}-${fb.booking}`)
                 );
 
-                const pMap = new Map<string, PastPhlebotomist>();
+                const entries: PastPhlebotomist[] = [];
 
                 bookingsData.data.forEach((booking: any) => {
                     if (booking.phlebotomist?._id && booking.phlebotomist?.fullName) {
-                        const id = booking.phlebotomist._id;
-                        const isReviewed = reviewedIds.has(id);
+                        const phlebId = booking.phlebotomist._id;
+                        const key = `${phlebId}-${booking._id}`;
 
-                        if (!pMap.has(id)) {
-                            pMap.set(id, {
-                                id,
-                                name: booking.phlebotomist.fullName,
-                                recentBookingDate: booking.bookingDate,
-                                hasReviewed: isReviewed
-                            });
-                        } else {
-                            const existing = pMap.get(id)!;
-                            if (new Date(booking.bookingDate) > new Date(existing.recentBookingDate)) {
-                                existing.recentBookingDate = booking.bookingDate;
-                            }
-                        }
+                        entries.push({
+                            id: phlebId,
+                            name: booking.phlebotomist.fullName,
+                            bookingId: booking._id,
+                            bookingDate: booking.bookingDate,
+                            hasReviewed: reviewedKeys.has(key),
+                        });
                     }
                 });
 
                 setPhlebotomists(
-                    Array.from(pMap.values()).sort(
-                        (a, b) => new Date(b.recentBookingDate).getTime() - new Date(a.recentBookingDate).getTime()
+                    entries.sort(
+                        (a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
                     )
                 );
             }
@@ -116,7 +113,7 @@ const RatePhlebotomist = () => {
                             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Rate Your Phlebotomist</h1>
                             <p className="text-gray-600 mt-2 max-w-2xl leading-relaxed">
                                 Your feedback directly impacts the quality of our home collection services.
-                                Select a professional below to share your experience.
+                                Select a booking below to share your experience.
                             </p>
                         </div>
                     </div>
@@ -160,34 +157,36 @@ const RatePhlebotomist = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                         {/* Split View: Master List */}
-                        <div className={`lg:col-span-5 space-y-4 ${selectedId ? "hidden lg:block" : ""}`}>
+                        <div className={`lg:col-span-5 space-y-4 ${selectedKey ? "hidden lg:block" : ""}`}>
                             <div className="flex items-center justify-between mb-6 px-1">
-                                <h2 className="text-xl font-semibold text-gray-900">Recent Professionals</h2>
+                                <h2 className="text-xl font-semibold text-gray-900">Past Bookings</h2>
                                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                                     {phlebotomists.length} Total
                                 </Badge>
                             </div>
 
                             <div className="space-y-3">
-                                {phlebotomists.map((p, idx) => (
+                                {phlebotomists.map((p, idx) => {
+                                    const key = `${p.id}-${p.bookingId}`;
+                                    return (
                                     <motion.div
-                                        key={p.id}
+                                        key={key}
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: idx * 0.05 }}
                                     >
                                         <Card
                                             className={`cursor-pointer group transition-all duration-200 border-2 overflow-hidden
-                        ${selectedId === p.id
+                        ${selectedKey === key
                                                     ? "border-green-500 shadow-md bg-green-50/30 scale-[1.02]"
                                                     : "border-transparent hover:border-green-200 hover:shadow-sm hover:bg-gray-50/50"
                                                 }`}
-                                            onClick={() => setSelectedId(p.id)}
+                                            onClick={() => setSelectedKey(key)}
                                         >
                                             <CardContent className="p-4 flex items-center gap-4 relative">
                                                 {/* Selector indicator line */}
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg transition-colors
-                          ${selectedId === p.id ? "bg-green-500" : "bg-transparent group-hover:bg-green-200"}`}
+                          ${selectedKey === key ? "bg-green-500" : "bg-transparent group-hover:bg-green-200"}`}
                                                 />
 
                                                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-700 flex-shrink-0 group-hover:bg-green-200 transition-colors">
@@ -205,26 +204,27 @@ const RatePhlebotomist = () => {
                                                         )}
                                                     </div>
                                                     <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
-                                                        Last visit: {formatDate(p.recentBookingDate)}
+                                                        Booking: {formatDate(p.bookingDate)}
                                                     </p>
                                                 </div>
 
                                                 <ChevronRight className={`h-5 w-5 transition-transform shrink-0
-                          ${selectedId === p.id ? "text-green-500 translate-x-1" : "text-gray-300 group-hover:text-green-400"}
+                          ${selectedKey === key ? "text-green-500 translate-x-1" : "text-gray-300 group-hover:text-green-400"}
                         `} />
                                             </CardContent>
                                         </Card>
                                     </motion.div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
                         {/* Split View: Detail / Review Form */}
-                        <div className={`lg:col-span-7 ${!selectedId ? "hidden lg:block" : ""}`}>
+                        <div className={`lg:col-span-7 ${!selectedKey ? "hidden lg:block" : ""}`}>
                             <AnimatePresence mode="wait">
-                                {selectedId ? (
+                                {selectedKey ? (
                                     <motion.div
-                                        key={selectedId}
+                                        key={selectedKey}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
@@ -235,13 +235,15 @@ const RatePhlebotomist = () => {
                                         <Button
                                             variant="ghost"
                                             className="lg:hidden mb-4 -ml-2 text-muted-foreground hover:text-foreground"
-                                            onClick={() => setSelectedId(null)}
+                                            onClick={() => setSelectedKey(null)}
                                         >
                                             ← Back to List
                                         </Button>
 
                                         {(() => {
-                                            const selected = phlebotomists.find((p) => p.id === selectedId);
+                                            const selected = phlebotomists.find(
+                                                (p) => `${p.id}-${p.bookingId}` === selectedKey
+                                            );
                                             if (!selected) return null;
 
                                             return (
@@ -252,6 +254,9 @@ const RatePhlebotomist = () => {
                                                             <Star className="w-48 h-48" />
                                                         </div>
                                                         <h3 className="text-xl font-bold text-white z-10">Review for {selected.name}</h3>
+                                                        <p className="text-white/70 text-sm z-10">
+                                                            Booking: {formatDate(selected.bookingDate)}
+                                                        </p>
                                                     </div>
 
                                                     <div className="p-2">
@@ -259,7 +264,8 @@ const RatePhlebotomist = () => {
                                                             targetType="phlebotomist"
                                                             targetId={selected.id}
                                                             targetName={selected.name}
-                                                            onSubmitted={() => fetchData()} // Refresh to update "Reviewed" badge
+                                                            bookingId={selected.bookingId}
+                                                            onSubmitted={() => fetchData()}
                                                             className="border-none shadow-none"
                                                         />
                                                     </div>

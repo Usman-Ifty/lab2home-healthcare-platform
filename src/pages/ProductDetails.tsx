@@ -14,7 +14,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { ShoppingCart, Heart, Loader2, Package, Star, Minus, Plus, Share2 } from 'lucide-react';
+import { ShoppingCart, Heart, Loader2, Package, Star, Minus, Plus, Share2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import * as marketplaceService from '@/services/marketplace.service';
 import RatingSummary from '@/components/shared/RatingSummary';
@@ -31,6 +31,8 @@ const ProductDetails = () => {
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState<string>('');
     const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+    const [hasPurchased, setHasPurchased] = useState(false);
+    const [checkingPurchase, setCheckingPurchase] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
@@ -39,9 +41,34 @@ const ProductDetails = () => {
             fetchProduct();
             if (token) {
                 checkWishlist();
+                checkPurchaseStatus();
             }
         }
     }, [id, token]);
+
+    const checkPurchaseStatus = async () => {
+        if (!token || !id) return;
+        try {
+            setCheckingPurchase(true);
+            const { API_BASE_URL } = await import('@/lib/api');
+            const response = await fetch(`${API_BASE_URL}/marketplace/orders`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (data.success) {
+                const delivered = (data.data || []).some(
+                    (order: any) =>
+                        order.status === 'delivered' &&
+                        order.items?.some((item: any) => item.product === id || item.product?._id === id)
+                );
+                setHasPurchased(delivered);
+            }
+        } catch (error) {
+            console.error('Error checking purchase status:', error);
+        } finally {
+            setCheckingPurchase(false);
+        }
+    };
 
     useEffect(() => {
         if (product && product.images && product.images.length > 0) {
@@ -372,14 +399,25 @@ const ProductDetails = () => {
                                 targetId={id!}
                                 refreshKey={reviewRefreshKey}
                             />
-                            {token && (
+                            {token && hasPurchased ? (
                                 <FeedbackForm
                                     targetType="product"
                                     targetId={id!}
                                     targetName={product.name}
                                     onSubmitted={handleReviewSubmitted}
                                 />
-                            )}
+                            ) : token && !checkingPurchase ? (
+                                <Card>
+                                    <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                                        <div className="p-3 bg-gray-100 rounded-full">
+                                            <Lock className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Purchase and receive this product to leave a review.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ) : null}
                         </div>
                         <div className="lg:col-span-2">
                             <FeedbackList

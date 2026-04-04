@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import Navbar from "@/components/shared/Navbar";
 import SplitText from "@/components/shared/SplitText";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ── Shared Premium Components ──────────────────────────────────────────────
 const FloatingIcon = ({ icon: Icon, className }: { icon: React.ElementType, className?: string }) => (
@@ -17,6 +18,8 @@ const Blob = ({ className }: { className?: string }) => (
 );
 
 const Hero = () => {
+    const { isAuthenticated, user } = useAuth();
+    
     return (
         <section className="relative min-h-[95vh] w-full flex items-center justify-center overflow-hidden pt-24 pb-20 auth-gradient-panel">
             <Navbar />
@@ -87,27 +90,57 @@ const Hero = () => {
                         transition={{ delay: 1.2, duration: 0.6 }}
                         className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 pointer-events-auto"
                     >
-                        <Button
-                            size="lg"
-                            className="group text-lg px-8 py-6 rounded-full shadow-strong hover:shadow-2xl hover:scale-105 transition-all duration-300"
-                            asChild
-                        >
-                            <Link to="/signup">
-                                <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                                Get Started
-                            </Link>
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="text-lg px-8 py-6 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white hover:text-primary transition-all duration-300 shadow-soft"
-                            asChild
-                        >
-                            <Link to="/signup">
-                                <Calendar className="w-5 h-5 mr-2" />
-                                Book a Test Now
-                            </Link>
-                        </Button>
+                        {isAuthenticated ? (
+                            <>
+                                <Button
+                                    size="lg"
+                                    className="group text-lg px-8 py-6 rounded-full shadow-strong hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                                    asChild
+                                >
+                                    <Link to={`/${user?.role || ''}`}>
+                                        <Activity className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                                        Go to Dashboard
+                                    </Link>
+                                </Button>
+                                {user?.role === 'patient' && (
+                                    <Button
+                                        size="lg"
+                                        variant="outline"
+                                        className="text-lg px-8 py-6 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white hover:text-primary transition-all duration-300 shadow-soft"
+                                        asChild
+                                    >
+                                        <Link to="/patient/book-test">
+                                            <Calendar className="w-5 h-5 mr-2" />
+                                            Book a Test Now
+                                        </Link>
+                                    </Button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    size="lg"
+                                    className="group text-lg px-8 py-6 rounded-full shadow-strong hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                                    asChild
+                                >
+                                    <Link to="/signup">
+                                        <UserPlus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                                        Get Started
+                                    </Link>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="text-lg px-8 py-6 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 text-white hover:bg-white hover:text-primary transition-all duration-300 shadow-soft"
+                                    asChild
+                                >
+                                    <Link to="/signup">
+                                        <Calendar className="w-5 h-5 mr-2" />
+                                        Book a Test Now
+                                    </Link>
+                                </Button>
+                            </>
+                        )}
                     </motion.div>
 
                     {/* Trust Badges */}

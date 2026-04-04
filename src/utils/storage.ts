@@ -13,14 +13,23 @@ const STORAGE_KEYS = {
 // Token expiration time (24 hours in milliseconds)
 const TOKEN_EXPIRY_TIME = 24 * 60 * 60 * 1000;
 
+const getFromStorage = (key: string): string | null => {
+    return localStorage.getItem(key) || sessionStorage.getItem(key);
+};
+
+const removeFromStorage = (key: string): void => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+};
+
 /**
- * Get token from sessionStorage
+ * Get token from storage
  * Checks expiration and returns null if expired
  */
 export const getToken = (): string | null => {
     try {
-        const token = sessionStorage.getItem(STORAGE_KEYS.TOKEN);
-        const expiry = sessionStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
+        const token = getFromStorage(STORAGE_KEYS.TOKEN);
+        const expiry = getFromStorage(STORAGE_KEYS.TOKEN_EXPIRY);
 
         if (!token) return null;
 
@@ -42,36 +51,42 @@ export const getToken = (): string | null => {
 };
 
 /**
- * Set token in sessionStorage with expiration
+ * Set token in appropriate storage with expiration
  */
-export const setToken = (token: string): void => {
+export const setToken = (token: string, rememberMe?: boolean): void => {
     try {
         const expiryTime = Date.now() + TOKEN_EXPIRY_TIME;
-        sessionStorage.setItem(STORAGE_KEYS.TOKEN, token);
-        sessionStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
+        
+        // Remove from both first to ensure no conflicts
+        removeFromStorage(STORAGE_KEYS.TOKEN);
+        removeFromStorage(STORAGE_KEYS.TOKEN_EXPIRY);
+
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem(STORAGE_KEYS.TOKEN, token);
+        storage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
     } catch (error) {
         console.error('Error setting token:', error);
     }
 };
 
 /**
- * Remove token from sessionStorage
+ * Remove token from storage
  */
 export const removeToken = (): void => {
     try {
-        sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-        sessionStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
+        removeFromStorage(STORAGE_KEYS.TOKEN);
+        removeFromStorage(STORAGE_KEYS.TOKEN_EXPIRY);
     } catch (error) {
         console.error('Error removing token:', error);
     }
 };
 
 /**
- * Get user data from sessionStorage
+ * Get user data from storage
  */
 export const getUser = (): any | null => {
     try {
-        const userData = sessionStorage.getItem(STORAGE_KEYS.USER);
+        const userData = getFromStorage(STORAGE_KEYS.USER);
         return userData ? JSON.parse(userData) : null;
     } catch (error) {
         console.error('Error getting user data:', error);
@@ -80,22 +95,24 @@ export const getUser = (): any | null => {
 };
 
 /**
- * Set user data in sessionStorage
+ * Set user data in storage
  */
-export const setUser = (userData: any): void => {
+export const setUser = (userData: any, rememberMe?: boolean): void => {
     try {
-        sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+        removeFromStorage(STORAGE_KEYS.USER);
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
     } catch (error) {
         console.error('Error setting user data:', error);
     }
 };
 
 /**
- * Remove user data from sessionStorage
+ * Remove user data from storage
  */
 export const removeUser = (): void => {
     try {
-        sessionStorage.removeItem(STORAGE_KEYS.USER);
+        removeFromStorage(STORAGE_KEYS.USER);
     } catch (error) {
         console.error('Error removing user data:', error);
     }
@@ -116,33 +133,8 @@ export const isAuthenticated = (): boolean => {
     return getToken() !== null;
 };
 
-/**
- * Migrate from localStorage to sessionStorage
- * This is a one-time migration function
- */
-export const migrateFromLocalStorage = (): void => {
-    try {
-        // Check if data exists in localStorage
-        const oldToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
-        const oldUser = localStorage.getItem(STORAGE_KEYS.USER);
-
-        // Migrate to sessionStorage
-        if (oldToken && !sessionStorage.getItem(STORAGE_KEYS.TOKEN)) {
-            setToken(oldToken);
-        }
-
-        if (oldUser && !sessionStorage.getItem(STORAGE_KEYS.USER)) {
-            sessionStorage.setItem(STORAGE_KEYS.USER, oldUser);
-        }
-
-        // Clear old localStorage data
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
-    } catch (error) {
-        console.error('Error migrating from localStorage:', error);
-    }
-};
+// Deprecated: No longer needed as we support both storages via rememberMe
+export const migrateFromLocalStorage = (): void => {};
 
 export default {
     getToken,
@@ -155,3 +147,4 @@ export default {
     isAuthenticated,
     migrateFromLocalStorage,
 };
+

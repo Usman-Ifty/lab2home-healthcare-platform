@@ -53,8 +53,19 @@ const feedbackSchema = new Schema<IFeedback>(
     }
 );
 
-// One review per patient per target
-feedbackSchema.index({ patient: 1, targetType: 1, targetId: 1 }, { unique: true });
+// Per-booking reviews: one review per target type per booking
+// (e.g. one lab review + one phlebotomist review per booking)
+feedbackSchema.index(
+    { booking: 1, targetType: 1, targetId: 1 },
+    { unique: true, sparse: true, name: 'unique_review_per_booking' }
+);
+
+// Per-order reviews: one review per product per order
+feedbackSchema.index(
+    { order: 1, targetId: 1 },
+    { unique: true, sparse: true, name: 'unique_review_per_order' }
+);
+
 // Fast lookup of all reviews for a target
 feedbackSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 // Patient's own reviews

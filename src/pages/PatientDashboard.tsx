@@ -140,14 +140,16 @@ const PatientDashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       >
-        <h1 className="text-4xl font-bold text-foreground mb-2">Welcome back, {user?.fullName?.split(' ')[0] || 'Patient'}!</h1>
-        <p className="text-muted-foreground">Your health dashboard at a glance</p>
+        <h1 className="text-2xl font-bold leading-tight text-foreground break-words sm:text-3xl lg:text-4xl mb-2">
+          Welcome back, {user?.fullName?.split(' ')[0] || 'Patient'}!
+        </h1>
+        <p className="text-sm text-muted-foreground sm:text-base">Your health dashboard at a glance</p>
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
         <StatCard
           title="Total Tests"
           value={stats.total.toString()}
@@ -188,13 +190,13 @@ const PatientDashboard = () => {
           transition={{ delay: 0.4 }}
           className="lg:col-span-2"
         >
-          <Card className="border-border bg-card p-6 shadow-soft">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">Recent Bookings</h2>
+          <Card className="border-border bg-card p-4 shadow-soft sm:p-6">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-foreground sm:text-xl">Recent Bookings</h2>
                 <p className="text-sm text-muted-foreground">Your latest test appointments</p>
               </div>
-              <Button onClick={() => navigate('/patient/book-test')}>
+              <Button className="w-full shrink-0 sm:w-auto" onClick={() => navigate('/patient/book-test')}>
                 <TestTube className="mr-2 h-4 w-4" />
                 Book New Test
               </Button>
@@ -212,44 +214,49 @@ const PatientDashboard = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
-                    className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50"
+                    className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <TestTube className="h-6 w-6" />
                       </div>
-                      <div>
-                        <p className="font-semibold text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words font-semibold text-foreground">
                           {booking.tests && booking.tests.length > 0
                             ? booking.tests.map(t => t?.name || 'Unknown Test').join(', ')
                             : 'Unknown Test'}
                         </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(booking.bookingDate).toLocaleDateString()} at {booking.preferredTimeSlot}
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3 shrink-0" />
+                          <span>
+                            {new Date(booking.bookingDate).toLocaleDateString()} at {booking.preferredTimeSlot}
+                          </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{booking.lab?.labName}</p>
+                        <p className="mt-1 break-words text-xs text-muted-foreground">{booking.lab?.labName}</p>
                       </div>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium capitalize
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium capitalize
                       ${booking.status === 'completed' ? 'bg-success/10 text-success' :
                         booking.status === 'pending' ? 'bg-warning/10 text-warning' :
                           booking.status === 'cancelled' ? 'bg-destructive/10 text-destructive' :
                             'bg-primary/10 text-primary'}`}
-                    >
-                      {booking.status}
-                    </span>
-                    {booking.status === 'completed' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="ml-2 text-xs gap-1 border-warning/40 text-warning hover:bg-warning/10"
-                        onClick={(e) => { e.stopPropagation(); setReviewBooking(booking); }}
                       >
-                        <Star className="h-3 w-3" />
-                        Rate
-                      </Button>
-                    )}
+                        {booking.status}
+                      </span>
+                      {booking.status === 'completed' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs gap-1 border-warning/40 text-warning hover:bg-warning/10"
+                          onClick={(e) => { e.stopPropagation(); setReviewBooking(booking); }}
+                        >
+                          <Star className="h-3 w-3" />
+                          Rate
+                        </Button>
+                      )}
+                    </div>
                   </motion.div>
                 ))
               )}
@@ -265,7 +272,7 @@ const PatientDashboard = () => {
           className="space-y-6"
         >
           {/* Daily Health Tip */}
-          <Card className="border-border bg-gradient-to-br from-primary/5 to-secondary/5 p-6 shadow-soft border-l-4 border-l-primary">
+          <Card className="border-border bg-gradient-to-br from-primary/5 to-secondary/5 p-4 shadow-soft border-l-4 border-l-primary sm:p-6">
             <div className="mb-3 flex items-center gap-2">
               <div className="p-2 bg-background rounded-full shadow-sm">
                 <Lightbulb className="h-5 w-5 text-warning" />
@@ -281,9 +288,9 @@ const PatientDashboard = () => {
             </div>
           </Card>
 
-          <Card className="border-border bg-card p-6 shadow-soft">
+          <Card className="border-border bg-card p-4 shadow-soft sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-secondary" />
+              <TrendingUp className="h-5 w-5 shrink-0 text-secondary" />
               <h3 className="font-semibold text-foreground">Quick Actions</h3>
             </div>
             <div className="space-y-2">
@@ -307,14 +314,14 @@ const PatientDashboard = () => {
         transition={{ delay: 0.6 }}
         className="mt-6"
       >
-        <Card className="border-border bg-card p-6 shadow-soft">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Recent Reports</h2>
+        <Card className="border-border bg-card p-4 shadow-soft sm:p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-foreground sm:text-xl">Recent Reports</h2>
               <p className="text-sm text-muted-foreground">View and download your test results</p>
             </div>
             {bookings.filter(b => b.reportUrl && b.status === 'completed').length > 0 && (
-              <Button variant="outline" onClick={() => navigate('/patient/reports')}>
+              <Button className="w-full shrink-0 sm:w-auto" variant="outline" onClick={() => navigate('/patient/reports')}>
                 View All Reports
               </Button>
             )}
@@ -391,6 +398,7 @@ const PatientDashboard = () => {
                     targetType="lab"
                     targetId={reviewBooking.lab._id}
                     targetName={reviewBooking.lab.labName}
+                    bookingId={reviewBooking._id}
                     onSubmitted={() => { }}
                   />
                 </div>
@@ -406,6 +414,7 @@ const PatientDashboard = () => {
                     targetType="phlebotomist"
                     targetId={reviewBooking.phlebotomist._id}
                     targetName={reviewBooking.phlebotomist.fullName}
+                    bookingId={reviewBooking._id}
                     onSubmitted={() => { }}
                   />
                 </div>

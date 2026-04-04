@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +25,9 @@ import {
   HeartPulse,
   ShieldCheck,
   Activity,
+  User,
+  Bike,
+  ArrowLeft,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,21 +64,95 @@ const Blob = ({ className }: { className?: string }) => (
   />
 );
 
+type UserRole = "patient" | "lab" | "phlebotomist" | "admin";
+
+const roleDetails: Record<UserRole, { id: UserRole; title: string; description: string; icon: React.ElementType; color: string; bg: string }> = {
+  patient: {
+    id: "patient",
+    title: "Patient",
+    description: "Book tests, view reports & manage your health",
+    icon: User,
+    color: "text-primary",
+    bg: "bg-primary/10 group-hover:bg-primary/20",
+  },
+  lab: {
+    id: "lab",
+    title: "Lab",
+    description: "Manage tests, appointments & digital reports",
+    icon: FlaskConical,
+    color: "text-health",
+    bg: "bg-health/10 group-hover:bg-health/20",
+  },
+  phlebotomist: {
+    id: "phlebotomist",
+    title: "Phlebotomist",
+    description: "Collect samples at patient locations",
+    icon: Bike,
+    color: "text-secondary",
+    bg: "bg-secondary/10 group-hover:bg-secondary/20",
+  },
+  admin: {
+    id: "admin",
+    title: "Admin",
+    description: "System administration and management",
+    icon: ShieldCheck,
+    color: "text-destructive",
+    bg: "bg-destructive/10 group-hover:bg-destructive/20",
+  },
+};
+
+const RoleSelection = ({
+  onSelectRole,
+}: {
+  onSelectRole: (role: UserRole) => void;
+}) => {
+  const roles = Object.values(roleDetails);
+
+  return (
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="grid gap-3">
+        {roles.map((role, i) => {
+          const Icon = role.icon;
+          return (
+            <button
+              key={role.id}
+              onClick={() => onSelectRole(role.id)}
+              className={`group w-full flex items-center gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-medium bg-background/60 hover:bg-background transition-all duration-300 text-left anim-delay-${(i + 1) * 100} animate-fade-in-up`}
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className={`${role.bg} p-3 rounded-xl transition-colors duration-300`}>
+                <Icon className={`w-6 h-6 ${role.color}`} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-foreground">{role.title}</div>
+                <div className="text-sm text-muted-foreground">{role.description}</div>
+              </div>
+              <div className="text-muted-foreground group-hover:text-primary transition-colors">›</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function Login() {
-  const [role, setRole] = useState<"patient" | "lab" | "phlebotomist" | "admin">("patient");
+  const [role, setRole] = useState<UserRole | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, logout, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user, loading } = useAuth();
   const { toast } = useToast();
+  const loginNavigate = useNavigate();
 
   useEffect(() => {
-    // If a user navigates back to the login page via browser back button,
-    // ensure their token is expired/cleared as requested.
-    if (isAuthenticated) {
-      logout();
+    // If the user is already authenticated (e.g. via "Remember Me"),
+    // redirect them to their dashboard instead of logging them out.
+    if (!loading && isAuthenticated && user) {
+      loginNavigate(`/${user.userType}`, { replace: true });
     }
-  }, [isAuthenticated, logout]);
+  }, [isAuthenticated, user, loading, loginNavigate]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -86,10 +163,11 @@ export default function Login() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (!role) return;
     setIsLoading(true);
     setLoginError("");
 
-    const result = await login(data.email, data.password, role);
+    const result = await login(data.email, data.password, role, rememberMe);
 
     setIsLoading(false);
 
@@ -115,8 +193,12 @@ export default function Login() {
       {/* Minimal Top Bar */}
       <header className="absolute top-0 w-full z-50 p-6 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-            <img src={logo} alt="Lab2Home" className="w-6 h-6" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+            <img
+              src={logo}
+              alt="Lab2Home"
+              className="h-full w-full origin-center scale-[1.8] object-contain"
+            />
           </div>
           <span className="font-bold text-xl tracking-tight hidden sm:block">
             <span className="text-foreground">Lab2</span>
@@ -163,8 +245,12 @@ export default function Login() {
 
           {/* Panel content */}
           <div className="relative z-10 text-center px-12 max-w-md">
-            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center mx-auto mb-8 shadow-lg">
-              <img src={logo} alt="Lab2Home" className="w-12 h-12" />
+            <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-white/30 bg-white/20 shadow-lg backdrop-blur-sm">
+              <img
+                src={logo}
+                alt="Lab2Home"
+                className="h-full w-full origin-center scale-[2.45] object-contain"
+              />
             </div>
             <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
               Welcome Back to{" "}
@@ -209,164 +295,170 @@ export default function Login() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 shadow-soft mb-6 animate-fade-in">
               <LogIn className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">
-                Sign in to your account
+                {role ? `Sign in as ${role.charAt(0).toUpperCase() + role.slice(1)}` : "Select Role to Sign In"}
               </span>
             </div>
 
             {/* Card */}
             <div className="glass-card rounded-2xl p-8 animate-fade-in-up">
-              <h1 className="text-3xl font-bold text-foreground mb-1">
-                Welcome back
-              </h1>
-              <p className="text-muted-foreground mb-8">
-                Enter your credentials to continue
+              <div className="flex items-center gap-4 mb-2">
+                {role && (() => {
+                  const Icon = roleDetails[role].icon;
+                  // Get the bg color avoiding hover states for the static icon display
+                  const baseBg = roleDetails[role].bg.split(' ')[0];
+                  return (
+                    <div className={`${baseBg} p-2.5 rounded-xl border border-border/40 shadow-sm animate-fade-in`}>
+                      <Icon className={`w-7 h-7 ${roleDetails[role].color}`} />
+                    </div>
+                  );
+                })()}
+                <h1 className="text-3xl font-bold text-foreground">
+                  {role ? `${role.charAt(0).toUpperCase() + role.slice(1)} Sign In` : "Sign In to Lab2Home"}
+                </h1>
+              </div>
+              <p className="text-muted-foreground mb-8 mt-2">
+                {role ? `Enter your ${role} credentials to continue` : "Please select your role to proceed"}
               </p>
 
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-5"
-                >
-                  {/* Role Selection */}
-                  <div className="flex gap-2 mb-6 p-1 bg-background/60 border border-border/60 rounded-lg animate-fade-in-up">
-                    {(['patient', 'phlebotomist', 'lab', 'admin'] as const).map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setRole(r)}
-                        className={`flex-1 capitalize text-sm py-2 rounded-md font-medium transition-all ${
-                          role === r 
-                            ? "bg-primary text-primary-foreground shadow-sm" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
+              {!role ? (
+                <RoleSelection onSelectRole={setRole} />
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => setRole(null)} className="mb-6 -ml-2 hover:bg-primary/10 transition-colors" disabled={isLoading}>
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Change Role
+                  </Button>
 
-                  {/* Email */}
-                  <div className="animate-fade-in-up anim-delay-100">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-foreground/80">
-                            <Mail className="w-4 h-4 text-primary" />
-                            Email Address
-                          </FormLabel>
-                          <FormControl>
-                            <div className="auth-input rounded-lg">
-                              <Input
-                                type="email"
-                                placeholder="ahmad@example.com"
-                                className="h-11 bg-background/60 border-border/60 focus:border-primary/50 transition-all"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div className="animate-fade-in-up anim-delay-200">
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2 text-foreground/80">
-                            <Lock className="w-4 h-4 text-primary" />
-                            Password
-                          </FormLabel>
-                          <FormControl>
-                            <div className="auth-input relative rounded-lg">
-                              <Input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••"
-                                className="h-11 pr-10 bg-background/60 border-border/60 focus:border-primary/50 transition-all"
-                                {...field}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                aria-label={
-                                  showPassword ? "Hide password" : "Show password"
-                                }
-                              >
-                                {showPassword ? (
-                                  <Eye className="w-4 h-4" />
-                                ) : (
-                                  <EyeOff className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Error */}
-                  {loginError && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-fade-in">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>{loginError}</span>
-                    </div>
-                  )}
-
-                  {/* Remember me / Forgot */}
-                  <div className="flex items-center justify-between animate-fade-in-up anim-delay-300">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="remember"
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <label
-                        htmlFor="remember"
-                        className="text-sm text-muted-foreground cursor-pointer"
-                      >
-                        Remember me
-                      </label>
-                    </div>
-                    <Link
-                      to="/forgot-password"
-                      className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors font-medium"
+                  <Form {...form}>
+                    <form
+                      onSubmit={form.handleSubmit(onSubmit)}
+                      className="space-y-5"
                     >
-                      Forgot password?
-                    </Link>
-                  </div>
+                      {/* Email */}
+                      <div className="animate-fade-in-up anim-delay-100">
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2 text-foreground/80">
+                                <Mail className="w-4 h-4 text-primary" />
+                                Email Address
+                              </FormLabel>
+                              <FormControl>
+                                <div className="auth-input rounded-lg">
+                                  <Input
+                                    type="email"
+                                    placeholder="ahmad@example.com"
+                                    className="h-11 bg-background/60 border-border/60 focus:border-primary/50 transition-all"
+                                    {...field}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  {/* Submit */}
-                  <div className="animate-fade-in-up anim-delay-350">
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full text-base py-6 shadow-medium hover:shadow-strong transition-all duration-300 group relative overflow-hidden"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        <>
-                          <LogIn className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                          Sign In
-                        </>
+                      {/* Password */}
+                      <div className="animate-fade-in-up anim-delay-200">
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2 text-foreground/80">
+                                <Lock className="w-4 h-4 text-primary" />
+                                Password
+                              </FormLabel>
+                              <FormControl>
+                                <div className="auth-input relative rounded-lg">
+                                  <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className="h-11 pr-10 bg-background/60 border-border/60 focus:border-primary/50 transition-all"
+                                    {...field}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={
+                                      showPassword ? "Hide password" : "Show password"
+                                    }
+                                  >
+                                    {showPassword ? (
+                                      <Eye className="w-4 h-4" />
+                                    ) : (
+                                      <EyeOff className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Error */}
+                      {loginError && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-fade-in">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span>{loginError}</span>
+                        </div>
                       )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+
+                      {/* Remember me / Forgot */}
+                      <div className="flex items-center justify-between animate-fade-in-up anim-delay-300">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="remember"
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                          />
+                          <label
+                            htmlFor="remember"
+                            className="text-sm text-muted-foreground cursor-pointer"
+                          >
+                            Remember me
+                          </label>
+                        </div>
+                        <Link
+                          to="/forgot-password"
+                          className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors font-medium"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+
+                      {/* Submit */}
+                      <div className="animate-fade-in-up anim-delay-350">
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="w-full text-base py-6 shadow-medium hover:shadow-strong transition-all duration-300 group relative overflow-hidden"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Signing in...
+                            </>
+                          ) : (
+                            <>
+                              <LogIn className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                              Sign In
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </>
+              )}
 
               {/* Divider */}
               <div className="flex items-center gap-4 my-6">

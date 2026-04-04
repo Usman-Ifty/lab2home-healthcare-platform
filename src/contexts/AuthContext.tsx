@@ -24,7 +24,7 @@ interface LoginResult {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string, role: string) => Promise<LoginResult>;
+  login: (email: string, password: string, role: string, rememberMe?: boolean) => Promise<LoginResult>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -41,9 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
-      // Migrate from localStorage to sessionStorage (one-time)
-      storage.migrateFromLocalStorage();
-
       const storedToken = storage.getToken();
 
       if (storedToken) {
@@ -64,7 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             console.log('✅ Auth check passed, user:', userData);
             setUser(userData);
-            storage.setUser(userData);
+            const isRemembered = !!localStorage.getItem('lab2home_token');
+            storage.setUser(userData, isRemembered);
           } else {
             storage.clearAuth();
             removeApiToken();
@@ -83,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string, role: string): Promise<LoginResult> => {
+  const login = async (email: string, password: string, role: string, rememberMe: boolean = false): Promise<LoginResult> => {
     try {
       setLoading(true);
 
@@ -105,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Save token
         setApiToken(response.data.token);
         setToken(response.data.token);
+        storage.setToken(response.data.token, rememberMe);
 
         // Set user data
         const userData: User = {
@@ -122,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('🧭 Will navigate to:', `/${userData.userType}`);
 
         setUser(userData);
-        storage.setUser(userData);
+        storage.setUser(userData, rememberMe);
 
         // Navigate based on user type
         const path = `/${userData.userType}`;

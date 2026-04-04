@@ -71,28 +71,19 @@ export const getMyReviews = async (
 export const checkExistingFeedback = async (
     token: string,
     targetType: 'lab' | 'phlebotomist' | 'product',
-    targetId: string
+    targetId: string,
+    options?: { booking?: string; order?: string }
 ) => {
+    const params: any = {};
+    if (options?.booking) params.booking = options.booking;
+    if (options?.order) params.order = options.order;
+
     const response = await axios.get(`${API_URL}/feedback/check/${targetType}/${targetId}`, {
+        params,
         headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
 };
 
-export const updateFeedback = async (
-    token: string,
-    feedbackId: string,
-    data: { rating?: number; comment?: string }
-) => {
-    const response = await axios.put(`${API_URL}/feedback/${feedbackId}`, data, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-};
-
-export const deleteFeedback = async (token: string, feedbackId: string) => {
-    const response = await axios.delete(`${API_URL}/feedback/${feedbackId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data;
-};
+// updateFeedback and deleteFeedback have been removed.
+// Reviews are immutable — they cannot be edited or deleted once submitted.

@@ -26,11 +26,9 @@ router.get('/my-reviews', protect, restrictTo('patient'), getMyReviews);
 // Check if patient has already reviewed a target
 router.get('/check/:targetType/:targetId', protect, restrictTo('patient'), checkExistingFeedback);
 
-// Update own feedback
-router.put('/:id', protect, restrictTo('patient'), updateFeedback);
-
-// Delete own feedback
-router.delete('/:id', protect, restrictTo('patient'), deleteFeedback);
+// Reviews are immutable — update and delete are disabled.
+// router.put('/:id', protect, restrictTo('patient'), updateFeedback);
+// router.delete('/:id', protect, restrictTo('patient'), deleteFeedback);
 
 // ============================================
 // ADMIN ROUTES

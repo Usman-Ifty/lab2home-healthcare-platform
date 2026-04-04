@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Send, Edit3 } from 'lucide-react';
+import { Loader2, Send, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import StarRating from './StarRating';
 import * as feedbackService from '@/services/feedback.service';
@@ -33,31 +33,30 @@ const FeedbackForm = ({
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true);
     const [existingFeedback, setExistingFeedback] = useState<any>(null);
-    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         // Reset state when target changes
         setExistingFeedback(null);
         setRating(0);
         setComment('');
-        setIsEditing(false);
 
         if (token && targetId) {
             checkExisting();
         } else {
             setChecking(false);
         }
-    }, [token, targetId, targetType]);
+    }, [token, targetId, targetType, bookingId, orderId]);
 
     const checkExisting = async () => {
         if (!token) return;
         try {
             setChecking(true);
-            const response = await feedbackService.checkExistingFeedback(token, targetType, targetId);
+            const response = await feedbackService.checkExistingFeedback(
+                token, targetType, targetId,
+                { booking: bookingId, order: orderId }
+            );
             if (response.data.hasReviewed && response.data.feedback) {
                 setExistingFeedback(response.data.feedback);
-                setRating(response.data.feedback.rating);
-                setComment(response.data.feedback.comment || '');
             }
         } catch (error) {
             console.error('Error checking feedback:', error);
@@ -80,49 +79,21 @@ const FeedbackForm = ({
         try {
             setLoading(true);
 
-            if (existingFeedback && isEditing) {
-                await feedbackService.updateFeedback(token, existingFeedback._id, {
-                    rating,
-                    comment: comment.trim() || undefined,
-                });
-                toast.success('Review updated successfully!');
-                setIsEditing(false);
-            } else {
-                await feedbackService.submitFeedback(token, {
-                    targetType,
-                    targetId,
-                    rating,
-                    comment: comment.trim() || undefined,
-                    booking: bookingId,
-                    order: orderId,
-                });
-                toast.success('Review submitted successfully!');
-            }
+            await feedbackService.submitFeedback(token, {
+                targetType,
+                targetId,
+                rating,
+                comment: comment.trim() || undefined,
+                booking: bookingId,
+                order: orderId,
+            });
+            toast.success('Review submitted successfully!');
 
             await checkExisting();
             onSubmitted?.();
         } catch (error: any) {
             const message = error.response?.data?.message || 'Failed to submit review';
             toast.error(message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!token || !existingFeedback) return;
-
-        try {
-            setLoading(true);
-            await feedbackService.deleteFeedback(token, existingFeedback._id);
-            toast.success('Review deleted');
-            setExistingFeedback(null);
-            setRating(0);
-            setComment('');
-            setIsEditing(false);
-            onSubmitted?.();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to delete review');
         } finally {
             setLoading(false);
         }
@@ -138,33 +109,13 @@ const FeedbackForm = ({
         );
     }
 
-    // Show existing review (read-only) with option to edit
-    if (existingFeedback && !isEditing) {
+    // Show existing review (read-only, no edit/delete)
+    if (existingFeedback) {
         return (
             <Card className={className}>
                 <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center justify-between">
                         <span>Your Review</span>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsEditing(true)}
-                                className="text-muted-foreground hover:text-primary"
-                            >
-                                <Edit3 className="h-4 w-4 mr-1" />
-                                Edit
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleDelete}
-                                disabled={loading}
-                                className="text-muted-foreground hover:text-red-500"
-                            >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
-                            </Button>
-                        </div>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -174,6 +125,12 @@ const FeedbackForm = ({
                             {existingFeedback.comment}
                         </p>
                     )}
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">
+                            Reviews cannot be edited or deleted once submitted.
+                        </p>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -190,7 +147,7 @@ const FeedbackForm = ({
         <Card className={className}>
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg">
-                    {isEditing ? 'Edit Your Review' : `Rate this ${targetLabel}`}
+                    {`Rate this ${targetLabel}`}
                 </CardTitle>
                 {targetName && (
                     <p className="text-sm text-muted-foreground">{targetName}</p>
@@ -230,32 +187,25 @@ const FeedbackForm = ({
                     </p>
                 </div>
 
-                <div className="flex gap-3">
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={loading || rating === 0}
-                        className="flex-1"
-                    >
-                        {loading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                            <Send className="h-4 w-4 mr-2" />
-                        )}
-                        {isEditing ? 'Update Review' : 'Submit Review'}
-                    </Button>
-                    {isEditing && (
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setIsEditing(false);
-                                setRating(existingFeedback.rating);
-                                setComment(existingFeedback.comment || '');
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                    )}
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200/60">
+                    <Lock className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                    <p className="text-xs text-amber-700">
+                        Reviews are permanent and cannot be edited or deleted after submission.
+                    </p>
                 </div>
+
+                <Button
+                    onClick={handleSubmit}
+                    disabled={loading || rating === 0}
+                    className="w-full"
+                >
+                    {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Submit Review
+                </Button>
             </CardContent>
         </Card>
     );

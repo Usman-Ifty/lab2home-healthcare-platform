@@ -3,6 +3,8 @@ import Feedback from '../models/Feedback';
 import Lab from '../models/Lab';
 import Phlebotomist from '../models/Phlebotomist';
 import Product from '../models/Product';
+import Booking from '../models/Booking';
+import Order from '../models/Order';
 import mongoose from 'mongoose';
 
 // Model map for dynamic lookups
@@ -71,19 +73,82 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        // Check for existing review
-        const existingFeedback = await Feedback.findOne({
-            patient: patientId,
-            targetType,
-            targetId,
-        });
+        // ── SERVICE VERIFICATION ──────────────────────────────────────────
+        // Reviews are per-booking (lab/phleb) or per-order (product).
+        if (targetType === 'lab' || targetType === 'phlebotomist') {
+            if (!booking) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Booking ID is required to review a lab or phlebotomist.',
+                });
+                return;
+            }
 
-        if (existingFeedback) {
-            res.status(409).json({
-                success: false,
-                message: 'You have already reviewed this item. Use the update endpoint instead.',
+            // Verify the booking exists, belongs to this patient, is completed,
+            // and actually involves the target.
+            const filterField = targetType === 'lab' ? 'lab' : 'phlebotomist';
+            const completedBooking = await Booking.findOne({
+                _id: booking,
+                patient: patientId,
+                [filterField]: targetId,
+                status: 'completed',
             });
-            return;
+            if (!completedBooking) {
+                res.status(403).json({
+                    success: false,
+                    message: `You can only review a ${targetType} from a completed booking that involved them.`,
+                });
+                return;
+            }
+
+            // Check for existing review for this booking + target
+            const existingFeedback = await Feedback.findOne({
+                booking,
+                targetType,
+                targetId,
+            });
+            if (existingFeedback) {
+                res.status(409).json({
+                    success: false,
+                    message: `You have already reviewed this ${targetType} for this booking.`,
+                });
+                return;
+            }
+        } else if (targetType === 'product') {
+            if (!order) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Order ID is required to review a product.',
+                });
+                return;
+            }
+
+            const deliveredOrder = await Order.findOne({
+                _id: order,
+                patient: patientId,
+                'items.product': targetId,
+                status: 'delivered',
+            });
+            if (!deliveredOrder) {
+                res.status(403).json({
+                    success: false,
+                    message: 'You can only review products from your delivered orders.',
+                });
+                return;
+            }
+
+            // Check for existing review for this order + product
+            const existingFeedback = await Feedback.findOne({
+                order,
+                targetId,
+            });
+            if (existingFeedback) {
+                res.status(409).json({
+                    success: false,
+                    message: 'You have already reviewed this product for this order.',
+                });
+                return;
+            }
         }
 
         // Create feedback
@@ -93,8 +158,8 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
             targetId,
             rating,
             comment,
-            booking,
-            order,
+            booking: (targetType === 'lab' || targetType === 'phlebotomist') ? booking : undefined,
+            order: targetType === 'product' ? order : undefined,
         });
 
         // Recalculate rating
@@ -111,7 +176,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
         if (error.code === 11000) {
             res.status(409).json({
                 success: false,
-                message: 'You have already reviewed this item.',
+                message: 'You have already reviewed this item for this booking/order.',
             });
             return;
         }
@@ -314,114 +379,50 @@ export const getMyReviews = async (req: Request, res: Response): Promise<void> =
 };
 
 // ============================================
-// UPDATE FEEDBACK
+// UPDATE FEEDBACK (Disabled — reviews are immutable)
 // ============================================
-export const updateFeedback = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const patientId = req.user?.id;
-        const { id } = req.params;
-        const { rating, comment } = req.body;
-
-        const feedback = await Feedback.findById(id);
-        if (!feedback) {
-            res.status(404).json({
-                success: false,
-                message: 'Feedback not found.',
-            });
-            return;
-        }
-
-        // Check ownership
-        if (feedback.patient.toString() !== patientId) {
-            res.status(403).json({
-                success: false,
-                message: 'You can only update your own reviews.',
-            });
-            return;
-        }
-
-        // Update fields
-        if (rating !== undefined) feedback.rating = rating;
-        if (comment !== undefined) feedback.comment = comment;
-        await feedback.save();
-
-        // Recalculate rating
-        await recalculateRating(feedback.targetType, feedback.targetId.toString());
-
-        res.status(200).json({
-            success: true,
-            message: 'Feedback updated successfully!',
-            data: feedback,
-        });
-    } catch (error: any) {
-        console.error('Error updating feedback:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update feedback.',
-            error: error.message,
-        });
-    }
+export const updateFeedback = async (_req: Request, res: Response): Promise<void> => {
+    res.status(403).json({
+        success: false,
+        message: 'Reviews cannot be edited once submitted.',
+    });
 };
 
 // ============================================
-// DELETE FEEDBACK
+// DELETE FEEDBACK (Disabled — reviews are immutable)
 // ============================================
-export const deleteFeedback = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const patientId = req.user?.id;
-        const { id } = req.params;
-
-        const feedback = await Feedback.findById(id);
-        if (!feedback) {
-            res.status(404).json({
-                success: false,
-                message: 'Feedback not found.',
-            });
-            return;
-        }
-
-        // Check ownership
-        if (feedback.patient.toString() !== patientId) {
-            res.status(403).json({
-                success: false,
-                message: 'You can only delete your own reviews.',
-            });
-            return;
-        }
-
-        const { targetType, targetId } = feedback;
-        await Feedback.findByIdAndDelete(id);
-
-        // Recalculate rating
-        await recalculateRating(targetType, targetId.toString());
-
-        res.status(200).json({
-            success: true,
-            message: 'Feedback deleted successfully!',
-        });
-    } catch (error: any) {
-        console.error('Error deleting feedback:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete feedback.',
-            error: error.message,
-        });
-    }
+export const deleteFeedback = async (_req: Request, res: Response): Promise<void> => {
+    res.status(403).json({
+        success: false,
+        message: 'Reviews cannot be deleted once submitted.',
+    });
 };
 
 // ============================================
-// CHECK IF PATIENT HAS REVIEWED A TARGET
+// CHECK IF PATIENT HAS REVIEWED A TARGET (per booking/order)
 // ============================================
 export const checkExistingFeedback = async (req: Request, res: Response): Promise<void> => {
     try {
         const patientId = req.user?.id;
         const { targetType, targetId } = req.params;
+        const bookingId = req.query.booking as string;
+        const orderId = req.query.order as string;
 
-        const feedback = await Feedback.findOne({
+        // Build filter based on booking or order context
+        const filter: any = {
             patient: patientId,
             targetType,
             targetId,
-        });
+        };
+
+        if (bookingId) {
+            filter.booking = bookingId;
+        }
+        if (orderId) {
+            filter.order = orderId;
+        }
+
+        const feedback = await Feedback.findOne(filter);
 
         res.status(200).json({
             success: true,
