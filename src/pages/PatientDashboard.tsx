@@ -19,11 +19,13 @@ import {
   Lightbulb,
   Star,
   X,
+  User,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { API_BASE_URL } from "@/lib/api";
 import FeedbackForm from "@/components/shared/FeedbackForm";
+import { EditProfileModal } from "@/components/patient/EditProfileModal";
 
 interface Booking {
   _id: string;
@@ -61,6 +63,7 @@ const PatientDashboard = () => {
     upcoming: 0
   });
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   // Daily Health Tips
   const healthTips = [
@@ -294,6 +297,10 @@ const PatientDashboard = () => {
               <h3 className="font-semibold text-foreground">Quick Actions</h3>
             </div>
             <div className="space-y-2">
+              <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => setShowEditProfile(true)}>
+                <User className="mr-2 h-4 w-4" />
+                Update Profile
+              </Button>
               <Button variant="outline" className="w-full justify-start" size="sm">
                 <Pill className="mr-2 h-4 w-4" />
                 Order Medical Supplies
@@ -423,6 +430,12 @@ const PatientDashboard = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+      />
     </DashboardLayout>
   );
 };

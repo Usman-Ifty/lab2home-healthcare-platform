@@ -9,6 +9,7 @@ import {
   labLogin,
   unifiedLogin,
   getMe,
+  updatePatientProfile,
   forgotPassword,
   verifyResetOTP,
   resetPassword,
@@ -47,6 +48,9 @@ router.post('/change-password', changePassword);
 
 // Get current user (protected route)
 router.get('/me', authenticateToken, getMe);
+
+// Update patient profile (protected route)
+router.put('/profile', authenticateToken, updatePatientProfile);
 
 export default router;
 

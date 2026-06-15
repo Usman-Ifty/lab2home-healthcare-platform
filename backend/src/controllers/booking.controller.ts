@@ -353,6 +353,13 @@ export const updateBookingStatus = async (req: Request, res: Response): Promise<
 
         booking.status = status;
         if (phlebotomist) {
+            if (booking.collectionType !== 'home') {
+                res.status(400).json({
+                    success: false,
+                    message: 'Phlebotomists can only be assigned to home collection bookings',
+                });
+                return;
+            }
             booking.phlebotomist = phlebotomist;
         }
 

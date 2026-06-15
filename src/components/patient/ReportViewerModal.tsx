@@ -5,11 +5,12 @@ import {
     DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, X, Loader2 } from "lucide-react";
+import { Download, Printer, X, Loader2, Brain } from "lucide-react";
 import { ReportBooking, getReportUrl } from "@/services/reportService";
 import { toast } from "sonner";
 import axios from "axios";
 import { getToken } from "@/utils/storage";
+import { AiInterpretation } from "./AiInterpretation";
 
 interface ReportViewerModalProps {
     booking: ReportBooking | null;
@@ -28,6 +29,7 @@ export function ReportViewerModal({
     const [error, setError] = useState(false);
     const [fileType, setFileType] = useState<'pdf' | 'image' | 'unknown'>('unknown');
     const [imageUrl, setImageUrl] = useState<string>('');
+    const [showAI, setShowAI] = useState(false);
 
     useEffect(() => {
         if (isOpen && booking) {
@@ -149,6 +151,15 @@ export function ReportViewerModal({
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2 flex-shrink-0 mr-8">
                             <Button
+                                variant={showAI ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setShowAI(!showAI)}
+                                className="gap-2"
+                            >
+                                <Brain className="h-4 w-4" />
+                                <span className="hidden sm:inline">{showAI ? 'View Report' : 'AI Interpret'}</span>
+                            </Button>
+                            <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handlePrint}
@@ -238,6 +249,13 @@ export function ReportViewerModal({
                         </div>
                     ) : null}
                 </div>
+
+                {/* AI Interpretation Panel */}
+                {showAI && booking && (
+                    <div className="border-t border-border p-6 overflow-y-auto max-h-[60vh] flex-shrink-0">
+                        <AiInterpretation bookingId={booking._id} />
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );

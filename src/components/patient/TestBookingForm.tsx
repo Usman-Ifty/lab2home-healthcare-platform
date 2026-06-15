@@ -27,6 +27,11 @@ import {
 import { toast } from "sonner";
 import { createBooking, API_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle } from "lucide-react";
+
+// Test categories that require physical lab equipment and cannot be done at home
+const LAB_ONLY_CATEGORIES = ["Imaging", "Radiology", "Cardiology"];
 
 interface Lab {
   _id: string;
@@ -35,6 +40,7 @@ interface Lab {
     _id: string;
     name: string;
     description: string;
+    category: string;
     basePrice: number;
     reportDeliveryTime: string;
     sampleType?: string;
@@ -88,7 +94,33 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
   });
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
-  const availableTests = selectedLab?.availableTests || [];
+  const allLabTests = selectedLab?.availableTests || [];
+
+  // Filter tests based on collection type
+  // Home collection hides tests that require physical lab equipment (Imaging, Radiology, Cardiology)
+  const availableTests = collectionType === "home"
+    ? allLabTests.filter((test) => {
+        const cat = test.category || "";
+        return !LAB_ONLY_CATEGORIES.some(
+          (blocked) => blocked.toLowerCase() === cat.toLowerCase()
+        );
+      })
+    : allLabTests;
+
+  // When collection type changes, remove any selected tests that are no longer available
+  useEffect(() => {
+    const availableIds = new Set(availableTests.map((t) => t._id));
+    setSelectedTests((prev) => {
+      const filtered = prev.filter((id) => availableIds.has(id));
+      if (filtered.length !== prev.length) {
+        const removed = prev.length - filtered.length;
+        if (removed > 0) {
+          toast.info(`${removed} test${removed > 1 ? "s" : ""} removed (not available for home collection)`);
+        }
+      }
+      return filtered;
+    });
+  }, [collectionType, selectedLab]);
 
   // Fetch available time slots when lab or date changes
   useEffect(() => {
@@ -127,6 +159,10 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
   const filteredTests = availableTests.filter((test) =>
     test.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const hiddenCount = collectionType === "home"
+    ? allLabTests.length - availableTests.length
+    : 0;
 
   const totalPrice = availableTests
     .filter((test) => selectedTests.includes(test._id))
@@ -246,100 +282,11 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
 
   return (
     <div className="space-y-8">
-      {/* Step 2: Select Tests */}
+      {/* Step 2: Collection Type (moved before test selection so tests can be filtered) */}
       <div>
         <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
             2
-          </span>
-          Select Tests
-        </h2>
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search tests..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 rounded-xl"
-            maxLength={100}
-          />
-        </div>
-
-        {/* Tests Grid */}
-        <div className="grid gap-3 max-h-64 overflow-y-auto pr-2">
-          <AnimatePresence>
-            {filteredTests.map((test, index) => (
-              <motion.div
-                key={test._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => handleTestToggle(test._id)}
-                className={cn(
-                  "flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all",
-                  selectedTests.includes(test._id)
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border hover:border-primary/30 hover:bg-muted/50"
-                )}
-              >
-                <Checkbox
-                  checked={selectedTests.includes(test._id)}
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-foreground">{test.name}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                        {test.description}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                      Rs. {test.basePrice}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {test.reportDeliveryTime}
-                    </span>
-                    {test.sampleType && (
-                      <span className="px-2 py-0.5 bg-muted rounded-full">
-                        {test.sampleType}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {selectedTests.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="mt-4 flex items-center justify-between rounded-xl bg-primary/5 p-4"
-          >
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {selectedTests.length} test{selectedTests.length > 1 ? "s" : ""} selected
-              </p>
-              <p className="text-lg font-bold text-foreground">Rs. {totalPrice}</p>
-            </div>
-            <CheckCircle2 className="h-6 w-6 text-primary" />
-          </motion.div>
-        )}
-      </div>
-
-      {/* Step 3: Collection Type */}
-      <div>
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            3
           </span>
           Collection Type
         </h2>
@@ -531,7 +478,118 @@ const TestBookingForm: React.FC<TestBookingFormProps> = ({ selectedLab }) => {
         </AnimatePresence>
       </div>
 
-      {/* Step 4: Date & Time */}
+      {/* Step 3: Select Tests (filtered by collection type) */}
+      <div>
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            3
+          </span>
+          Select Tests
+        </h2>
+
+        {/* Info notice when home collection hides some tests */}
+        {collectionType === "home" && hiddenCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-3 p-3 mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5"
+          >
+            <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              <span className="font-semibold">{hiddenCount} test{hiddenCount > 1 ? "s" : ""}</span>{" "}
+              (Imaging, Radiology, Cardiology) require lab equipment and are only available with{" "}
+              <span className="font-semibold">Lab Visit</span>.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search tests..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 rounded-xl"
+            maxLength={100}
+          />
+        </div>
+
+        {/* Tests Grid */}
+        <div className="grid gap-3 max-h-64 overflow-y-auto pr-2">
+          <AnimatePresence>
+            {filteredTests.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No tests available{searchQuery ? " matching your search" : " for this collection type"}.
+              </div>
+            ) : (
+              filteredTests.map((test, index) => (
+                <motion.div
+                  key={test._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: index * 0.03 }}
+                  onClick={() => handleTestToggle(test._id)}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all",
+                    selectedTests.includes(test._id)
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border hover:border-primary/30 hover:bg-muted/50"
+                  )}
+                >
+                  <Checkbox
+                    checked={selectedTests.includes(test._id)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">{test.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                          {test.description}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-primary whitespace-nowrap">
+                        Rs. {test.basePrice}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {test.reportDeliveryTime}
+                      </span>
+                      {test.sampleType && (
+                        <span className="px-2 py-0.5 bg-muted rounded-full">
+                          {test.sampleType}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+
+        {selectedTests.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-4 flex items-center justify-between rounded-xl bg-primary/5 p-4"
+          >
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {selectedTests.length} test{selectedTests.length > 1 ? "s" : ""} selected
+              </p>
+              <p className="text-lg font-bold text-foreground">Rs. {totalPrice}</p>
+            </div>
+            <CheckCircle2 className="h-6 w-6 text-primary" />
+          </motion.div>
+        )}
+      </div>
+
+      {/* Step 4: Date & Time (unchanged step number) */}
       <div>
         <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">

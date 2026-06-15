@@ -8,6 +8,8 @@ export interface IPatient extends Document {
   phone: string;
   dateOfBirth: Date;
   age?: number;
+  sex?: 'male' | 'female' | 'other';
+  conditions?: string[];
   address: string;
   isVerified: boolean;
   isActive: boolean;
@@ -51,6 +53,14 @@ const patientSchema = new Schema<IPatient>(
       min: 0,
       max: 150,
     },
+    sex: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+    },
+    conditions: [{
+      type: String,
+      trim: true,
+    }],
     address: {
       type: String,
       required: [true, 'Address is required'],

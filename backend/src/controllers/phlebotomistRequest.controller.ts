@@ -24,6 +24,11 @@ export const getAvailablePhlebotomists = async (req: Request, res: Response): Pr
             return;
         }
 
+        if (booking.collectionType !== 'home') {
+            res.status(400).json({ success: false, message: 'Phlebotomists can only be assigned to home collection bookings' });
+            return;
+        }
+
         // Get all phlebotomists and filter in memory to rely on Mongoose defaults
         const allPhlebotomists = await Phlebotomist.find({}).select('fullName email phone isAvailable isActive isVerified');
 
@@ -90,6 +95,11 @@ export const sendRequest = async (req: Request, res: Response): Promise<void> =>
 
         if (booking.lab.toString() !== labId) {
             res.status(403).json({ success: false, message: 'Not authorized to access this booking' });
+            return;
+        }
+
+        if (booking.collectionType !== 'home') {
+            res.status(400).json({ success: false, message: 'Phlebotomists can only be assigned to home collection bookings' });
             return;
         }
 

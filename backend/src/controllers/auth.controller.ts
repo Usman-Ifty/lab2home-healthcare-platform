@@ -1079,7 +1079,9 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           phone: patient.phone,
           address: patient.address,
           dateOfBirth: patient.dateOfBirth,
-
+          age: patient.age,
+          sex: patient.sex,
+          conditions: patient.conditions,
           userType: 'patient',
         },
       });
@@ -1129,6 +1131,69 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch user data',
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// UPDATE PATIENT PROFILE
+// ============================================
+export const updatePatientProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const patient = await Patient.findById(req.user.id);
+    if (!patient) {
+      res.status(404).json({ success: false, message: 'Patient not found' });
+      return;
+    }
+
+    const { sex, age, conditions, phone, address, fullName } = req.body;
+
+    // Update allowed fields
+    if (sex && ['male', 'female', 'other'].includes(sex)) {
+      patient.sex = sex;
+    }
+    if (age !== undefined && age !== null) {
+      const parsedAge = Number(age);
+      if (parsedAge >= 0 && parsedAge <= 150) {
+        patient.age = parsedAge;
+      }
+    }
+    if (conditions !== undefined) {
+      patient.conditions = Array.isArray(conditions) ? conditions : [];
+    }
+    if (phone) patient.phone = phone;
+    if (address) patient.address = address;
+    if (fullName) patient.fullName = fullName;
+
+    await patient.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        id: patient._id,
+        fullName: patient.fullName,
+        email: patient.email,
+        phone: patient.phone,
+        address: patient.address,
+        dateOfBirth: patient.dateOfBirth,
+        age: patient.age,
+        sex: patient.sex,
+        conditions: patient.conditions,
+        userType: 'patient',
+      },
+    });
+  } catch (error: any) {
+    console.error('Update patient profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
       error: error.message,
     });
   }
@@ -1314,7 +1379,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     }
 
     if (user) {
-      user.password = newPassword; 
+      user.password = newPassword;
       await user.save();
     }
 

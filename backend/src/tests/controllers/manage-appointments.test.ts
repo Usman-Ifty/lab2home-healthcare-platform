@@ -174,6 +174,15 @@ describe('UC-14: Manage Appointments (Lab Side)', () => {
             expect(response.body.message).toContain('Status is required');
         });
 
+        it('should return 400 if trying to assign a phlebotomist to a lab collection booking', async () => {
+            const response = await request(app)
+                .put(`/api/bookings/${confirmedBookingId}/status`)
+                .send({ status: 'confirmed', phlebotomist: phlebId });
+
+            expect(response.status).toBe(400);
+            expect(response.body.message).toContain('Phlebotomists can only be assigned to home collection bookings');
+        });
+
         it('should return 404 for a non-existent booking ID', async () => {
             const fakeId = new mongoose.Types.ObjectId().toString();
             const response = await request(app)

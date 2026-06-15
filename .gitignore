@@ -45,3 +45,8 @@ backend/test-output-manage-marketplace.txt
 backend/test-output-marketplace-explore.txt
 backend/test-output-manage-users.txt
 backend/final-test-run.txt
+ai-service/.env
+ai-service/__pycache__/
+ai-service/services/__pycache__/
+ai-service/data/__pycache__/
+ai-service/venv/

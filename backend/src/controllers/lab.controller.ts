@@ -22,7 +22,7 @@ export const getAvailableLabs = async (req: Request, res: Response): Promise<voi
         }
 
         const labs = await Lab.find(query)
-            .populate('availableTests', 'name category basePrice reportDeliveryTime')
+            .populate('availableTests', 'name description category basePrice reportDeliveryTime sampleType')
             .select('labName email phone labAddress operatingHours availableTests timeSlots averageRating totalReviews')
             .sort({ averageRating: -1, labName: 1 });
 

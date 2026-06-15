@@ -284,13 +284,31 @@ const AdminTestManagement = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="description">Description *</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="description">Description *</Label>
+                                        <Select
+                                            onValueChange={(value) => setTestForm({ ...testForm, description: value })}
+                                        >
+                                            <SelectTrigger className="w-[220px] h-8 text-xs">
+                                                <SelectValue placeholder="Select generic template" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Standard diagnostic blood test for general health screening.">Standard Blood Test</SelectItem>
+                                                <SelectItem value="Standard urine analysis for detecting urinary tract conditions.">Standard Urine Test</SelectItem>
+                                                <SelectItem value="Comprehensive panel evaluating multiple health parameters.">Comprehensive Panel</SelectItem>
+                                                <SelectItem value="Diagnostic imaging to visualize internal structures.">Diagnostic Imaging</SelectItem>
+                                                <SelectItem value="Routine screening to detect early signs of abnormalities.">Routine Screening</SelectItem>
+                                                <SelectItem value="Pathology examination of specific tissue samples.">Pathology Examination</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                     <Textarea
                                         id="description"
                                         value={testForm.description}
                                         onChange={(e) => setTestForm({ ...testForm, description: e.target.value })}
                                         required
                                         rows={3}
+                                        placeholder="Enter test description or select a template above"
                                     />
                                 </div>
 
@@ -308,34 +326,67 @@ const AdminTestManagement = () => {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="reportDeliveryTime">Report Delivery Time *</Label>
-                                        <Input
-                                            id="reportDeliveryTime"
+                                        <Select
                                             value={testForm.reportDeliveryTime}
-                                            onChange={(e) => setTestForm({ ...testForm, reportDeliveryTime: e.target.value })}
-                                            required
-                                            placeholder="e.g. 24 hours"
-                                        />
+                                            onValueChange={(value) => setTestForm({ ...testForm, reportDeliveryTime: value })}
+                                        >
+                                            <SelectTrigger id="reportDeliveryTime">
+                                                <SelectValue placeholder="Select delivery time" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Same Day">Same Day</SelectItem>
+                                                <SelectItem value="12 hours">12 hours</SelectItem>
+                                                <SelectItem value="24 hours">24 hours</SelectItem>
+                                                <SelectItem value="48 hours">48 hours</SelectItem>
+                                                <SelectItem value="3 days">3 days</SelectItem>
+                                                <SelectItem value="1 week">1 week</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="sampleType">Sample Type</Label>
-                                        <Input
-                                            id="sampleType"
-                                            value={testForm.sampleType}
-                                            onChange={(e) => setTestForm({ ...testForm, sampleType: e.target.value })}
-                                            placeholder="e.g. Blood, Urine"
-                                        />
+                                        <Select
+                                            value={testForm.sampleType || "Blood"}
+                                            onValueChange={(value) => setTestForm({ ...testForm, sampleType: value })}
+                                        >
+                                            <SelectTrigger id="sampleType">
+                                                <SelectValue placeholder="Select sample type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Blood">Blood</SelectItem>
+                                                <SelectItem value="Urine">Urine</SelectItem>
+                                                <SelectItem value="Stool">Stool</SelectItem>
+                                                <SelectItem value="Saliva">Saliva</SelectItem>
+                                                <SelectItem value="Swab">Swab</SelectItem>
+                                                <SelectItem value="Sputum">Sputum</SelectItem>
+                                                <SelectItem value="Tissue">Tissue</SelectItem>
+                                                <SelectItem value="None">None</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="preparationInstructions">Preparation Instructions</Label>
-                                        <Input
-                                            id="preparationInstructions"
-                                            value={testForm.preparationInstructions}
-                                            onChange={(e) => setTestForm({ ...testForm, preparationInstructions: e.target.value })}
-                                            placeholder="e.g. Fasting required"
-                                        />
+                                        <Select
+                                            value={testForm.preparationInstructions || "None"}
+                                            onValueChange={(value) => setTestForm({ ...testForm, preparationInstructions: value })}
+                                        >
+                                            <SelectTrigger id="preparationInstructions">
+                                                <SelectValue placeholder="Select instructions" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="None">None</SelectItem>
+                                                <SelectItem value="Fasting required (8-12 hours)">Fasting required (8-12 hours)</SelectItem>
+                                                <SelectItem value="Drink plenty of water">Drink plenty of water</SelectItem>
+                                                <SelectItem value="Avoid alcohol for 24h">Avoid alcohol for 24h</SelectItem>
+                                                <SelectItem value="Avoid specific medications">Avoid specific medications</SelectItem>
+                                                <SelectItem value="Full bladder required">Full bladder required</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 

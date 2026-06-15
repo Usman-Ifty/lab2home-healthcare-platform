@@ -371,7 +371,7 @@ const LabAppointments: React.FC<Props> = ({ insidePreview }) => {
                       >
                         <Trash2 className="h-3 w-3" /> Cancel
                       </Button>
-                      {(item.status === 'confirmed' || item.status === 'pending') && (
+                      {(item.status === 'confirmed' || item.status === 'pending') && item.collectionType === 'home' && (
                         <Button
                           variant="secondary"
                           size="sm"
